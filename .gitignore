@@ -1,0 +1,29 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Caches / tooling
+.pytest_cache/
+.deepeval/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+
+# Local course content (keep on disk; not published yet)
+src/**
+!src/.gitkeep
+
+# OS
+.DS_Store
