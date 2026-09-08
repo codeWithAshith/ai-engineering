@@ -1,0 +1,6 @@
+Acme order-support shipping policy.
+
+Standard shipping for ORD-* orders arrives in 3–5 business days after the status becomes shipped.
+Express shipping arrives in 1–2 business days.
+Pending orders have not left the warehouse yet; tracking appears only after shipped.
+International ORD-* orders may take 7–14 business days and can incur customs fees.

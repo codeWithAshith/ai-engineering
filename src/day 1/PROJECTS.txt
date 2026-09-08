@@ -1,0 +1,11 @@
+
+NL-to-SQL Analytics Agent
+
+PICK ONE — INDIVIDUAL PROJECTS
+------------------------------
+
+1. Customer Support Bot
+2. Document RAG + PPT Generator
+3. Video RAG (Multimodal)
+4. Invoice / Receipt Parser Agent
+5. HR Policy Assistant (RAG)

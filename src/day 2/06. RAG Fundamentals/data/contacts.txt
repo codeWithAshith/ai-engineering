@@ -1,0 +1,6 @@
+Acme order-support contacts.
+
+Email help@acme.example for ORD-* ticket questions.
+VIP desk phone is +1-555-0100 (tier=vip tickets only).
+Do not promise refunds by chat alone — use the refund tool with human approval when required.
+Store hours for callbacks: Monday–Friday 9:00–18:00 local time.

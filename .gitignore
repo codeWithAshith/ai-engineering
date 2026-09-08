@@ -21,9 +21,17 @@ wheels/
 .ruff_cache/
 __pycache__/
 
-# Local course content (keep on disk; not published yet)
+# Local course content (keep on disk; publish day-by-day)
 src/**
 !src/.gitkeep
+!src/day 1/
+!src/day 1/**
+!src/day 2/
+!src/day 2/**
+
+# Lesson-generated artifacts
+**/_checkpoints.sqlite
+**/_demo_pixel.png
 
 # OS
 .DS_Store

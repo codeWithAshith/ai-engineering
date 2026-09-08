@@ -1,0 +1,6 @@
+Acme order-support refund policy.
+
+Customers may request a refund within 45 days of delivery if they have the order receipt.
+Refunds for ORD-* orders are issued to the original payment method within 5–7 business days after approval.
+Partial refunds are allowed when only some line items are returned.
+Damaged items require a photo uploaded to the support ticket before approval.
