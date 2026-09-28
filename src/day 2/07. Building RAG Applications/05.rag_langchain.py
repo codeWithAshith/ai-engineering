@@ -1,4 +1,4 @@
-# 08 — RAG with LangChain (LCEL chain)
+# 05 — RAG with LangChain (LCEL chain)
 #
 # Concept: one composed chain for Acme policy Q&A (retriever | prompt | model).
 #

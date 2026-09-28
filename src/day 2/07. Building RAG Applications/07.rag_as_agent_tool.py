@@ -1,4 +1,4 @@
-# 10 — RAG as an agent tool
+# 07 — RAG as an agent tool
 #
 # Concept: expose policy search as @tool; the Day-1-style agent decides WHEN to retrieve.
 # Combines ORDERS lookup (structured) + policy RAG (unstructured).

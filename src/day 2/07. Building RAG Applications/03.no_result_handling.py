@@ -1,4 +1,4 @@
-# 06 — No-result handling
+# 03 — No-result handling
 #
 # Concept: if retrieval is not useful, do not invent policy facts.
 #

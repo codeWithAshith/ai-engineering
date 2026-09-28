@@ -1,4 +1,4 @@
-# 09 — RAG with LangGraph
+# 06 — RAG with LangGraph
 #
 # Concept: explicit retrieve → generate nodes (room for retries / HITL later).
 #
