@@ -1,4 +1,4 @@
-import { ArrowsIn, ClockCounterClockwise, X } from "@phosphor-icons/react";
+import { ClockCounterClockwise, X } from "@phosphor-icons/react";
 import { useEffect } from "react";
 
 export function EvolutionButton({ onClick }) {
@@ -48,24 +48,14 @@ export function EvolutionDialog({ evolution, open, onClose }) {
               <p className="m-0 font-serif text-xs text-slate-500">{evolution.subtitle}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex items-center gap-1 rounded-lg bg-slate-100 hover:bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
-            >
-              <ArrowsIn size={13} weight="bold" />
-              Close
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-              aria-label="Close dialog"
-            >
-              <X size={18} weight="bold" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label="Close dialog"
+          >
+            <X size={18} weight="bold" />
+          </button>
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 bg-slate-50/50">

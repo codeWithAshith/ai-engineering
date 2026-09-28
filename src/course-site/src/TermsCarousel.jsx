@@ -233,24 +233,14 @@ export function TermsCarousel({ slideId, edgePrev, edgeNext }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEvolutionOpen(false)}
-                  className="inline-flex items-center gap-1 rounded-lg bg-slate-100 hover:bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
-                >
-                  <ArrowsIn size={13} weight="bold" />
-                  Close
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEvolutionOpen(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                  aria-label="Close dialog"
-                >
-                  <X size={18} weight="bold" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsEvolutionOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Close dialog"
+              >
+                <X size={18} weight="bold" />
+              </button>
             </div>
 
             {/* Modal Scrollable Timeline Body */}

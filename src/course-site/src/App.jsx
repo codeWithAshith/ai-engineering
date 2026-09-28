@@ -4,6 +4,19 @@ import { Blocks, Rich } from "./Blocks.jsx";
 import { EvolutionButton, EvolutionDialog } from "./EvolutionDialog.jsx";
 import { PageFrame, linkFor } from "./PageFrame.jsx";
 import { PromptMadLibs } from "./PromptMadLibs.jsx";
+import { MessagesDemo } from "./MessagesDemo.jsx";
+import { ChainDemo } from "./ChainDemo.jsx";
+import { FlowDiagram } from "./FlowDiagram.jsx";
+import { ToolDump } from "./ToolDump.jsx";
+import { ToolLook } from "./ToolLook.jsx";
+import { ToolSources } from "./ToolSources.jsx";
+import { SummarizeThread } from "./SummarizeThread.jsx";
+import { HumanPause } from "./HumanPause.jsx";
+import { MemoryPieces } from "./MemoryPieces.jsx";
+import { RefundCases } from "./RefundCases.jsx";
+import { ResponseShape } from "./ResponseShape.jsx";
+import { ReactiveLoop } from "./ReactiveLoop.jsx";
+import { GraphWalk } from "./GraphWalk.jsx";
 import { TermsCarousel } from "./TermsCarousel.jsx";
 import { course } from "./course.js";
 import { termsDeck, termsHref } from "./terms.js";
@@ -425,14 +438,19 @@ function Article({ item, prev, next }) {
       next={linkFor(next, hrefFor)}
     >
       {item.demo === "prompt-mad-libs" ? <PromptMadLibs /> : null}
-      {item.file ? (
-        <div className="mt-0 mb-6 flex items-center gap-2 rounded-xl border border-line bg-surface p-3 text-sm text-slate-600 shadow-xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Class script:</span>
-          <code className="rounded-md border border-line bg-paper px-2 py-0.5 font-mono text-[0.88em] font-medium text-blue-700">
-            {item.file}
-          </code>
-        </div>
-      ) : null}
+      {item.demo === "tool-dump" ? <ToolDump /> : null}
+      {item.demo === "messages" ? <MessagesDemo /> : null}
+      {item.demo === "chain" ? <ChainDemo /> : null}
+      {item.demo === "tool-look" ? <ToolLook /> : null}
+      {item.demo === "tool-sources" ? <ToolSources /> : null}
+      {item.demo === "summarize-thread" ? <SummarizeThread /> : null}
+      {item.demo === "human-pause" ? <HumanPause /> : null}
+      {item.demo === "memory-pieces" ? <MemoryPieces /> : null}
+      {item.demo === "refund-cases" ? <RefundCases /> : null}
+      {item.demo === "response-shape" ? <ResponseShape /> : null}
+      {item.demo === "reactive-loop" ? <ReactiveLoop /> : null}
+      {item.demo === "graph" ? <GraphWalk id={item.graph} /> : null}
+      <FlowDiagram diagram={item.diagram} />
       {item.notes?.length ? (
         <div className="mb-5 rounded-xl border border-line bg-surface p-4 shadow-xs">
           <ul className="m-0 list-none space-y-2.5 pl-0 font-serif text-[1.05rem] leading-relaxed text-slate-800">
@@ -445,6 +463,7 @@ function Article({ item, prev, next }) {
           </ul>
         </div>
       ) : null}
+      <Blocks blocks={item.blocks} />
       {item.snippet ? (
         <div className="mb-5">
           <p className="m-0 mb-2 font-sans text-xs font-bold uppercase tracking-wider text-slate-400">The line that matters</p>
@@ -457,7 +476,6 @@ function Article({ item, prev, next }) {
           <pre className="overflow-x-auto rounded-xl border border-line bg-paper p-4 font-mono text-[0.88rem] leading-relaxed text-slate-800"><code>{item.sample}</code></pre>
         </div>
       ) : null}
-      <Blocks blocks={item.blocks} />
       <EvolutionDialog evolution={item.evolution} open={evolutionOpen} onClose={() => setEvolutionOpen(false)} />
     </PageFrame>
   );

@@ -46,28 +46,6 @@ basic = ChatPromptTemplate.from_messages(
 
 messages = basic.invoke({"topic": "European capitals", "country": "France"})
 response = model.invoke(messages).content
-
-print(f"Variables: topic='European capitals', country='France'")
-print(f"Response: {response}")
-print()
-print("═" * 100)
-print("EXAMPLE OUTPUT:")
-print("═" * 100)
-print("Variables: topic='European capitals', country='France'")
-print("Response: The capital of France is Paris.")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# PART 2: Few-shot examples (steering format and tone)
-# ════════════════════════════════════════════════════════════════════════════
-
-print()
-print("═" * 100)
-print("PART 2: Few-shot examples (examples in system prompt)")
-print("═" * 100)
-print()
-
-# KEY CODE SNIPPET: Few-shot examples to control output format
 few_shot = ChatPromptTemplate.from_messages(
     [
         SystemMessagePromptTemplate.from_template(
@@ -84,40 +62,3 @@ few_shot = ChatPromptTemplate.from_messages(
 
 messages = few_shot.invoke({"topic": "European capitals", "country": "Italy"})
 response = model.invoke(messages).content
-
-print(f"Variables: topic='European capitals', country='Italy'")
-print(f"Response: {response}")
-print()
-print("═" * 100)
-print("EXAMPLE OUTPUT:")
-print("═" * 100)
-print("Variables: topic='European capitals', country='Italy'")
-print("Response: Helloo, the capital of Italy is Rome.")
-print()
-print("Notice: The model learned the 'Helloo' greeting pattern from examples!")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# KEY TAKEAWAYS
-# ════════════════════════════════════════════════════════════════════════════
-
-print()
-print("═" * 100)
-print("KEY CONCEPTS")
-print("═" * 100)
-print()
-print("TEMPLATES:")
-print("  • Reusable prompts with {variable} placeholders")
-print("  • Type-safe (validates required variables)")
-print("  • Testable (same template, different inputs)")
-print()
-print("FEW-SHOT EXAMPLES:")
-print("  • Steer format: 'Helloo' instead of 'Hello'")
-print("  • Steer tone: formal vs casual")
-print("  • Steer structure: JSON, bullet points, etc.")
-print()
-print("WHEN TO USE:")
-print("  ✓ Multiple queries with same structure")
-print("  ✓ Need consistent format across responses")
-print("  ✓ Want to version-control prompts separately from code")
-print("-" * 100)

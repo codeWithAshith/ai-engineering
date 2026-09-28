@@ -671,7 +671,8 @@ export const termsDeck = {
       notes: [
         "**Checkpointer vs Store:** A checkpointer saves the full conversation thread for one `thread_id`. The Store holds **structured, reusable facts** (e.g. customer preferences, account metadata) that persist across new threads.",
         "Memory is not 'keep everything in context.' It is the intentional decision of what to persist outside the immediate chat and when to inject it back.",
-        "**Three types of agent memory:** **(1) Short-term (in-context)** — the filtered subset of messages the model sees **right now** in this API call (e.g. last 15 after trim), **(2) Session (checkpointed)** — the **complete** conversation history stored on disk for this `thread_id` (all 50 messages, persists across calls), **(3) Long-term (Store)** — durable facts that outlive this thread and apply to future interactions.",
+        "**Where it lives:** **(1) Short-term** — the messages this call actually sends, **(2) Session** — the full thread for one `thread_id`, **(3) Long-term (Store)** — what outlives that thread.",
+        "**Three kinds inside the Store:** **Semantic** — a fact (\"email, not phone\"), **Episodic** — a past case (situation, action, outcome), **Procedural** — a rule loaded into the next system prompt.",
         "Agents use `ToolRuntime` to explicitly write and search the Store from inside tool calls, making memory updates visible and debuggable rather than model-hallucinated.",
       ],
       example: "After resolving ticket TKT-42, the agent stores the customer's communication preference (email, not phone) in the LangGraph Store. Three weeks later, on a new thread TKT-89, the agent retrieves that preference without asking again.",
