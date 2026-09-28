@@ -1,10 +1,10 @@
-# 09 — Grounded answers
+# 05 — Citations
 #
-# Concept: retriever → context → prompt → model; answer ONLY from policy context.
+# Concept: return the answer plus source metadata from retrieved chunks.
 #
-# Limitation overcome: retrieval alone does not produce a customer-facing reply.
-# Example: refund window question grounded in Acme docs.
-# Still limited: answers without listed sources are hard to trust in support UIs.
+# Limitation overcome: grounded text without sources is hard to audit on ORD-* tickets.
+# Example: answer + policy file names.
+# Still limited: fundamentals stop here — apps module builds fuller pipelines.
 
 from pathlib import Path
 
@@ -37,16 +37,19 @@ prompt = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            "You are Acme order support. Use ONLY this policy context. "
-            "If missing, say you don't know.\n\n{context}",
+            "You are Acme order support. Use ONLY this context.\n\n{context}",
         ),
         ("human", "{question}"),
     ]
 )
-model = init_chat_model(model="groq:openai/gpt-oss-20b")
-chain = prompt | model | StrOutputParser()
+chain = prompt | init_chat_model(model="groq:openai/gpt-oss-20b") | StrOutputParser()
 
-question = "What is the refund window?"
-context = "\n\n".join(d.page_content for d in retriever.invoke(question))
-print(chain.invoke({"context": context, "question": question}))
+question = "Who do I email about ORD tickets?"
+hits = retriever.invoke(question)
+context = "\n\n".join(d.page_content for d in hits)
+answer = chain.invoke({"context": context, "question": question})
+sources = sorted({d.metadata["source"] for d in hits})
+
+print("answer:", answer)
+print("sources:", sources)
 print("-" * 100)
