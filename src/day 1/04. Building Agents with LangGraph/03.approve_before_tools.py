@@ -1,4 +1,4 @@
-# 06 — Approve tools before they run (interrupt_before)
+# 03 — Approve tools before they run (interrupt_before)
 #
 # Use case: a support desk must approve sensitive actions before tools execute.
 # Customer: "Cancel ORD-1." Agent plans cancel_order(ORD-1). Graph pauses.
@@ -7,15 +7,9 @@
 # Concept: interrupt_before=["tools"] pauses at the tools node boundary
 # (no special code inside the tool). Resume with invoke(None, config).
 #
-# Limitation overcome: interrupt() inside one tool (04) only covers that tool.
+# Limitation overcome: interrupt() inside one tool (previous lesson) only covers that tool.
 # Boundary pause reviews ANY tool call the model chose.
 # Still limited: if the order id is wrong, the desk needs to edit state then resume.
-#
-# ```mermaid
-# flowchart LR
-#   chatbot -->|wants cancel_order| pause[interrupt_before tools]
-#   pause -->|human OK| tools --> chatbot
-# ```
 
 from typing import Annotated, TypedDict
 

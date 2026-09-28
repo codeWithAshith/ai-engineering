@@ -4,22 +4,17 @@
 #   Linear:   START → A → B → END
 #   Parallel: START → A and B (both run), then merge → C → END
 #
-# Differs from map-reduce (Send): here edges are fixed; Send is dynamic per item.
+# KEY: two add_edge from START. Both branches must finish before merge.
+# Branches do not see each other's writes until merge.
 #
-# Limitation overcome: some workflows need two independent checks that can run
-    10|# at the same time (e.g., validate order + check inventory).
+# Differs from map-reduce (Send): here edges are fixed in code.
+# Send creates one worker per item at runtime — not this file.
 #
-# Example: order-support ticket — normalize order AND check customer tier in parallel,
-# then merge results.
+# Limitation overcome: some workflows need two independent checks at the same
+# time (validate order + check inventory). Not for looping over a list of ids.
 #
-# ```mermaid
-# flowchart TD
-#   START --> normalize
-#   START --> check_tier
-#   normalize --> merge
-#   check_tier --> merge
-    20|#   merge --> END
-# ```
+# Example: order-support ticket — normalize order AND check customer tier
+# in parallel, then merge results. notes accumulate with Annotated[list, add].
 
 from operator import add
 from typing import Annotated, TypedDict
@@ -28,7 +23,7 @@ from langgraph.graph import END, START, StateGraph
 
 ORDERS = {"ORD-1": "shipped", "ORD-2": "pending"}
 TIERS = {"ORD-1": "VIP", "ORD-2": "standard"}
-    30|
+
 
 class TicketState(TypedDict):
     order_id: str
@@ -39,7 +34,7 @@ class TicketState(TypedDict):
 
 
 def normalize(state: TicketState) -> dict:
-    40|    """Branch 1: normalize order id."""
+    """Branch 1: normalize order id."""
     oid = state["order_id"].strip().upper()
     return {
         "normalized_id": oid,
@@ -49,7 +44,7 @@ def normalize(state: TicketState) -> dict:
 
 def check_tier(state: TicketState) -> dict:
     """Branch 2: look up customer tier in parallel."""
-    50|    # Uses original order_id (branches don't see each other until merge)
+    # Uses original order_id (branches don't see each other until merge)
     raw_oid = state["order_id"].strip().upper()
     tier = TIERS.get(raw_oid, "standard")
     return {
@@ -59,7 +54,7 @@ def check_tier(state: TicketState) -> dict:
 
 
 def merge(state: TicketState) -> dict:
-    60|    """Merge: both branches done; final answer uses normalized_id + tier."""
+    """Merge: both branches done; final answer uses normalized_id + tier."""
     status = ORDERS.get(state["normalized_id"], "not found")
     prefix = "🌟 VIP" if state["tier"] == "VIP" else "Standard"
     return {
@@ -68,7 +63,7 @@ def merge(state: TicketState) -> dict:
     }
 
 
-    70|graph = StateGraph(TicketState)
+graph = StateGraph(TicketState)
 graph.add_node("normalize", normalize)
 graph.add_node("check_tier", check_tier)
 graph.add_node("merge", merge)
@@ -78,7 +73,7 @@ graph.add_edge(START, "normalize")
 graph.add_edge(START, "check_tier")
 
 # Both must finish before merge
-    80|graph.add_edge("normalize", "merge")
+graph.add_edge("normalize", "merge")
 graph.add_edge("check_tier", "merge")
 graph.add_edge("merge", END)
 
@@ -89,7 +84,7 @@ print("-" * 100)
 
 result = app.invoke({
     "order_id": " ord-1 ",
-    90|    "normalized_id": "",
+    "normalized_id": "",
     "tier": "",
     "notes": [],
     "answer": ""
@@ -100,7 +95,7 @@ print("Notes (parallel + merge):", result["notes"])
 print("-" * 100)
 
 print("PARALLEL PATTERNS:")
-   100|print("  Fixed parallel edges → START → A and B (both run, then merge)")
+print("  Fixed parallel edges → START → A and B (both run, then merge)")
 print("  Send (map-reduce)    → dynamic: one worker per item in a list")
 print("")
 print("Use fixed parallel when:")

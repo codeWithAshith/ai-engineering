@@ -11,14 +11,6 @@
 #
 # Example: ticket ran with wrong order id ORD-1; human fixes to ORD-2 and resumes.
 # Still limited: lookup logic is stuck inside one flat graph (hard to reuse).
-#
-# ```mermaid
-# flowchart LR
-#   invoke --> checkpoint
-#   checkpoint --> get_state
-#   get_state --> update_state
-#   update_state --> resume[invoke None]
-# ```
 
 from typing import TypedDict
 
@@ -27,17 +19,14 @@ from langgraph.graph import END, START, StateGraph
 
 ORDERS = {"ORD-1": "shipped", "ORD-2": "pending"}
 
-
 class TicketState(TypedDict):
     order_id: str
     status: str
     note: str
 
-
 def enrich(state: TicketState) -> dict:
     status = ORDERS.get(state["order_id"], "not found")
     return {"status": status, "note": f"Handling {state['order_id']} → {status}"}
-
 
 graph = StateGraph(TicketState)
 graph.add_node("enrich", enrich)

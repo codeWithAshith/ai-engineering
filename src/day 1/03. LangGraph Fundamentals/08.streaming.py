@@ -24,12 +24,6 @@
 # Example: order-support chatbot answering about ORD-1.
 # Still limited: one stream mode at a time — chatbots need thinking (tool steps)
 # and answer tokens together.
-#
-# ```mermaid
-# flowchart LR
-#   START --> chatbot
-#   chatbot --> END
-# ```
 
 from typing import Annotated, TypedDict
 
@@ -41,24 +35,19 @@ from langgraph.graph.message import add_messages
 
 load_dotenv()
 
-
 class TicketState(TypedDict):
     messages: Annotated[list, add_messages]
 
-
 model = init_chat_model(model="groq:openai/gpt-oss-20b")
-
 
 def chatbot(state: TicketState) -> dict:
     return {"messages": [model.invoke(state["messages"])]}
-
 
 graph = StateGraph(TicketState)
 graph.add_node("chatbot", chatbot)
 graph.add_edge(START, "chatbot")
 graph.add_edge("chatbot", END)
 app = graph.compile()
-
 
 print(app.get_graph().draw_mermaid())
 print("-" * 100)

@@ -10,13 +10,6 @@
 #
 # Example: linear ticket path normalize → enrich for ORD-1.
 # Still limited: every ticket takes the same path (no VIP vs standard desk).
-#
-# ```mermaid
-# flowchart LR
-#   START --> normalize
-#   normalize --> enrich
-#   enrich --> END
-# ```
 
 from typing import TypedDict
 
@@ -24,21 +17,17 @@ from langgraph.graph import END, START, StateGraph
 
 ORDERS = {"ORD-1": "shipped", "ORD-2": "pending"}
 
-
 class TicketState(TypedDict):
     order_id: str
     status: str
     note: str
 
-
 def normalize(state: TicketState) -> dict:
     return {"order_id": state["order_id"].strip().upper()}
-
 
 def enrich(state: TicketState) -> dict:
     status = ORDERS.get(state["order_id"], "not found")
     return {"status": status, "note": f"{state['order_id']} is currently {status}"}
-
 
 builder = StateGraph(TicketState)
 builder.add_node("normalize", normalize)

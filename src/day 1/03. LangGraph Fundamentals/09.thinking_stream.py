@@ -10,14 +10,6 @@
 #
 # Example: same ORD-1 + lookup_order agent loop; print [thinking] then answer.
 # Still limited: each run starts fresh — no memory of the ticket thread.
-#
-# ```mermaid
-# flowchart TD
-#   START --> chatbot
-#   chatbot -->|tool_calls| tools
-#   tools --> chatbot
-#   chatbot -->|done| END
-# ```
 
 from typing import Annotated, TypedDict
 
@@ -33,24 +25,19 @@ load_dotenv()
 
 ORDERS = {"ORD-1": "shipped", "ORD-2": "pending"}
 
-
 class TicketState(TypedDict):
     messages: Annotated[list, add_messages]
-
 
 @tool
 def lookup_order(order_id: str) -> str:
     """Look up order status by id."""
     return ORDERS.get(order_id, f"Order {order_id} not found")
 
-
 tools = [lookup_order]
 model = init_chat_model(model="groq:openai/gpt-oss-20b").bind_tools(tools)
 
-
 def chatbot(state: TicketState) -> dict:
     return {"messages": [model.invoke(state["messages"])]}
-
 
 graph = StateGraph(TicketState)
 graph.add_node("chatbot", chatbot)
@@ -59,7 +46,6 @@ graph.add_edge(START, "chatbot")
 graph.add_conditional_edges("chatbot", tools_condition)
 graph.add_edge("tools", "chatbot")
 app = graph.compile()
-
 
 print(app.get_graph().draw_mermaid())
 print("-" * 100)

@@ -1,6 +1,6 @@
-# 05 — Order-support agent + human-in-the-loop
+# 02 — Order-support agent + human-in-the-loop
 #
-# Concept: same chatbot ↔ tools agent as 03, plus:
+# Concept: same create_agent + tools loop from Tool Calling, plus:
 #   - MemorySaver (thread_id) so a pause can resume
 #   - request_refund tool that calls interrupt() — human must approve
 # Resume with Command(resume=True/False).
@@ -17,16 +17,6 @@
 # any tool call at the boundary, or fix a wrong order id while paused.
 #
 # Example: status of ORD-1 (no pause) → refund ORD-1 (pause → approve).
-#
-# ```mermaid
-# flowchart TD
-#   START --> chatbot
-#   chatbot -->|tool_calls| tools
-#   tools -->|interrupt on refund| Human
-#   Human -->|Command resume| tools
-#   tools --> chatbot
-#   chatbot -->|done| END
-# ```
 
 from typing import Annotated, TypedDict
 
@@ -94,7 +84,7 @@ graph.add_node("tools", ToolNode(tools))
 graph.add_edge(START, "chatbot")
 graph.add_conditional_edges("chatbot", tools_condition)
 graph.add_edge("tools", "chatbot")
-# NEW vs 03: checkpointer required for interrupt / resume
+# Checkpointer required for interrupt / resume
 app = graph.compile(checkpointer=MemorySaver())
 
 print(app.get_graph().draw_mermaid())
