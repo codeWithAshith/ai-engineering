@@ -1,4 +1,4 @@
-# 07 — Source attribution
+# 04 — Source attribution
 #
 # Concept: pair the answer with source file names from retrieved chunks.
 #

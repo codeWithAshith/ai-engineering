@@ -1,4 +1,4 @@
-# 05 — Retrieval prompt composition
+# 02 — Retrieval prompt composition
 #
 # Concept: glue retriever output into the prompt the model sees.
 #
