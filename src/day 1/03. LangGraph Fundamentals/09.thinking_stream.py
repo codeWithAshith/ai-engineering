@@ -1,4 +1,4 @@
-# 08 — Thinking then answer (dual stream)
+# 09 — Thinking then answer (dual stream)
 #
 # Concept: combine stream modes on an agent loop.
 #   stream_mode=["updates", "messages"]
