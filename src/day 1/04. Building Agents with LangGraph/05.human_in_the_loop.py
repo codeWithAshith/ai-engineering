@@ -5,6 +5,13 @@
 #   - request_refund tool that calls interrupt() — human must approve
 # Resume with Command(resume=True/False).
 #
+# Evolution of Human-in-the-Loop:
+#   2022: External approval queues (webhooks, message brokers) → complex architecture
+#   2023 Q1: Manual state save/restore → custom pause/resume per project
+#   2023 Q3: interrupt() inside tools → pauses execution mid-graph
+#   2024–Present: interrupt_before nodes + Command(resume=...) → declarative HITL
+#   Takeaway: Modern HITL is built into graphs, not external middleware.
+#
 # Limitation overcome: lookup tools answer ORD-1, but refunds must not auto-run.
 # Still limited: only interrupt-inside-tool; desk may need to approve
 # any tool call at the boundary, or fix a wrong order id while paused.

@@ -11,6 +11,14 @@
 #                            this for app data: schema is bound on the model,
 #                            usually more reliable than "please reply in JSON".
 #
+# Evolution of Structured Output:
+#   2022: Prompt "Reply in JSON" + regex scraping + json.loads() → crashes constantly
+#   2023 Q1: OutputFixingParser auto-retries on parse errors → 2x cost, 5s latency added
+#   2023 Q2: OpenAI function calling → JSON schema enforced at generation time
+#   2023 Q4: Anthropic, Mistral, Groq adopt tool calling → universal schema support
+#   2024–Present: with_structured_output() works across all providers via constrained decoding
+#   Takeaway: Never use "please return JSON" prompts. Use with_structured_output.
+#
 # Example: capital answer as a small schema (country, capital, …).
 
 from dotenv import load_dotenv
