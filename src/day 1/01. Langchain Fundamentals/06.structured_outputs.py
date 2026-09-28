@@ -28,11 +28,9 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
-
 class CapitalInfo(BaseModel):
     country: str = Field(description="Country name")
     capital: str = Field(description="Capital city")
-
 
 model = init_chat_model(model="groq:openai/gpt-oss-20b")
 
@@ -51,92 +49,5 @@ print("═" * 100)
 print()
 
 text_result = model.invoke(messages).content
-print(f"model.invoke (text): {text_result}")
-print()
-print("Problem: Free text - you'd need to parse 'Paris' out manually")
-print()
-print("═" * 100)
-print("EXAMPLE OUTPUT:")
-print("═" * 100)
-print("model.invoke (text): The capital of France is Paris.")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# PART 2: Structured output (Pydantic model)
-# ════════════════════════════════════════════════════════════════════════════
-
-print()
-print("═" * 100)
-print("PART 2: Structured output (Pydantic model)")
-print("═" * 100)
-print()
-
-# KEY CODE SNIPPET: Bind Pydantic schema to model
 structured = model.with_structured_output(CapitalInfo)
 result = structured.invoke(messages)
-
-print(f"Model with schema: model.with_structured_output(CapitalInfo)")
-print(f"Result type: {type(result).__name__}")
-print(f"Result: {result}")
-print()
-print(f"Access fields directly:")
-print(f"  result.country = {result.country}")
-print(f"  result.capital = {result.capital}")
-print()
-print("═" * 100)
-print("EXAMPLE OUTPUT:")
-print("═" * 100)
-print("Model with schema: model.with_structured_output(CapitalInfo)")
-print("Result type: CapitalInfo")
-print("Result: country='France' capital='Paris'")
-print()
-print("Access fields directly:")
-print("  result.country = France")
-print("  result.capital = Paris")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# KEY CONCEPTS
-# ════════════════════════════════════════════════════════════════════════════
-
-print()
-print("═" * 100)
-print("KEY CONCEPTS")
-print("═" * 100)
-print()
-print("STRUCTURED OUTPUTS:")
-print("  • Define Pydantic model with Field descriptions")
-print("  • model.with_structured_output(Schema) binds schema to model")
-print("  • Model generates JSON matching schema (enforced at generation time)")
-print("  • You get typed Pydantic instance, not dict or string")
-print()
-print("LESSON 05 vs LESSON 06:")
-print()
-print("Lesson 05 - JsonOutputParser:")
-print("  1. Prompt: 'Return JSON with format: {...}'")
-print("  2. Model returns text (hopefully JSON)")
-print("  3. Parser tries to parse text → dict")
-print("  4. Can fail if model doesn't follow instructions")
-print()
-print("Lesson 06 - with_structured_output:")
-print("  1. Schema bound to model at API level")
-print("  2. Model generation constrained to schema")
-print("  3. Always returns valid Pydantic instance")
-print("  4. More reliable (generation-time enforcement)")
-print()
-print("WHEN TO USE:")
-print("  ✓ Extracting entities from text")
-print("  ✓ Building app data structures")
-print("  ✓ Tool parameters (Day 1 Section 02)")
-print("  ✓ Database records from natural language")
-print()
-print("BENEFITS:")
-print("  ✓ Type-safe: result.capital (not result['capital'])")
-print("  ✓ Validated: Pydantic checks types automatically")
-print("  ✓ Reliable: Schema enforced at generation, not parsing")
-print("  ✓ Clean code: No manual JSON parsing logic")
-print()
-print("NEXT LESSON:")
-print("  07. streaming.py → Stream tokens as they're generated")
-print("-" * 100)
-

@@ -38,12 +38,10 @@ load_dotenv()
 
 ORDERS = {"ORD-1": "shipped", "ORD-2": "pending"}
 
-
 # KEY CODE SNIPPET: Pydantic schema for tool validation
 class RefundInput(BaseModel):
     order_id: str = Field(min_length=1, description="Order id like ORD-1")
     amount: float = Field(gt=0, le=500, description="USD, max 500")
-
 
 @tool(args_schema=RefundInput)
 def issue_refund(order_id: str, amount: float) -> str:
@@ -61,7 +59,6 @@ def issue_refund(order_id: str, amount: float) -> str:
     # Success case
     return f"Refunded ${amount:.2f} on {order_id}"
 
-
 agent = create_agent(
     model="groq:openai/gpt-oss-20b",
     tools=[issue_refund],
@@ -78,89 +75,4 @@ print("═" * 100)
 print()
 
 result_a = agent.invoke({"messages": [HumanMessage(content="Refund $999 on order ORD-1.")]})
-print(f"Request: Refund $999 on order ORD-1")
-print(f"Agent response: {result_a['messages'][-1].content}")
-print()
-print("═" * 100)
-print("EXAMPLE OUTPUT:")
-print("═" * 100)
-print("Request: Refund $999 on order ORD-1")
-print("Agent response: I'm sorry, but I cannot process that refund. The amount $999 exceeds the maximum allowed refund of $500.")
-print()
-print("Behind the scenes:")
-print("  1. Agent calls issue_refund(order_id='ORD-1', amount=999)")
-print("  2. Validation fails: amount > 500")
-print("  3. Tool returns: 'ERROR (validation): Input should be less than or equal to 500'")
-print("  4. Agent sees error and explains to customer")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# TEST CASE B: Missing DATA (order doesn't exist)
-# ════════════════════════════════════════════════════════════════════════════
-
-print()
-print("═" * 100)
-print("TEST CASE B: Missing DATA (order not found)")
-print("═" * 100)
-print()
-
 result_b = agent.invoke({"messages": [HumanMessage(content="Refund $10 on order ORD-999.")]})
-print(f"Request: Refund $10 on order ORD-999")
-print(f"Agent response: {result_b['messages'][-1].content}")
-print()
-print("═" * 100)
-print("EXAMPLE OUTPUT:")
-print("═" * 100)
-print("Request: Refund $10 on order ORD-999")
-print("Agent response: I cannot find order ORD-999 in the system. Please verify the order ID and try again.")
-print()
-print("Behind the scenes:")
-print("  1. Agent calls issue_refund(order_id='ORD-999', amount=10)")
-print("  2. Validation passes (amount is valid)")
-print("  3. Order lookup fails: ORD-999 not in ORDERS")
-print("  4. Tool returns: 'ERROR (not found): order ORD-999 does not exist'")
-print("  5. Agent sees error and asks customer to verify ID")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# KEY CONCEPTS
-# ════════════════════════════════════════════════════════════════════════════
-
-print()
-print("═" * 100)
-print("KEY CONCEPTS")
-print("═" * 100)
-print()
-print("TOOL ERROR PATTERNS:")
-print()
-print("1. INPUT VALIDATION (args_schema):")
-print("   • Pydantic Field constraints (gt=0, le=500, min_length=1)")
-print("   • Model sees schema → knows limits before calling")
-print("   • Catches: wrong types, out-of-range values, missing required fields")
-print()
-print("2. DATA VALIDATION (business logic):")
-print("   • Check if order exists in database")
-print("   • Check if action is allowed (can't refund delivered order)")
-print("   • Return descriptive error string")
-print()
-print("3. ERROR AS OUTPUT (not exception):")
-print("   • ✓ return 'ERROR: reason' → agent can retry or explain")
-print("   • ✗ raise Exception → crashes agent, loses conversation")
-print()
-print("BENEFITS:")
-print("  ✓ Agent stays running (graceful degradation)")
-print("  ✓ Customer gets helpful explanation (not 500 error)")
-print("  ✓ Agent can try alternate tool or ask for clarification")
-print()
-print("PRODUCTION PATTERN:")
-print("  @tool(args_schema=YourSchema)")
-print("  def your_tool(args) -> str:")
-print("      # 1. Validate business rules")
-print("      if not valid:")
-print("          return 'ERROR: clear reason'")
-print("      # 2. Execute action")
-print("      return 'Success: what happened'")
-print()
-print("NEXT LESSON:")
-print("  03. read_vs_write_tools.py → Separate read/write tool permissions")
-print("-" * 100)

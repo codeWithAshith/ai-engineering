@@ -1,4 +1,4 @@
-# 06 — create_agent response_format (structured final answers)
+# 03 — create_agent response_format (structured final answers)
 #
 # Concept: response_format asks the agent for a typed final answer (Pydantic).
 # Result includes structured_response — like with_structured_output (lesson 01.06),
@@ -34,12 +34,10 @@ from pydantic import BaseModel, Field
 
 load_dotenv()
 
-
 class OrderStatus(BaseModel):
     order_id: str
     status: str
     note: str = Field(description="One short sentence for the customer")
-
 
 agent = create_agent(
     model="groq:openai/gpt-oss-20b",
@@ -57,21 +55,3 @@ print("═" * 100)
 result = agent.invoke(
     {"messages": [HumanMessage(content="What is the status of ORD-1?")]}
 )
-
-print(f"structured_response: {result['structured_response']}")
-print(f"Type: {type(result['structured_response']).__name__}")
-print(f"Access fields: order_id={result['structured_response'].order_id}, status={result['structured_response'].status}")
-print()
-print("═" * 100)
-print("EXAMPLE OUTPUT:")
-print("═" * 100)
-print("structured_response: order_id='ORD-1' status='shipped' note='Your order has been shipped.'")
-print("Type: OrderStatus")
-print("Access fields: order_id=ORD-1, status=shipped")
-print()
-print("KEY CONCEPTS:")
-print("  • Agent returns Pydantic object (not just text)")
-print("  • App can access result['structured_response'].order_id directly")
-print("  • Useful for: APIs, databases, workflows")
-print("  • Limitation: Cannot combine with tools on some providers")
-print("-" * 100)
