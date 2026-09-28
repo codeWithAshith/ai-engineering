@@ -1,19 +1,12 @@
-# 07 — Fix wrong order id while paused, then resume
+# 04 — Fix wrong order id while paused, then resume
 #
 # Use case: customer said "refund ORD-1" but meant ORD-2.
-# Same agent as 05 (interrupt_before tools). Desk sees pending tool call,
+# Same interrupt_before as the previous lesson. Desk sees pending tool call,
 # edits order_id with update_state, then resumes.
 #
 # Concept: update_state(config, values) while paused → invoke(None) to continue.
 #
 # Limitation overcome: approve/reject alone cannot correct a wrong id.
-#
-# ```mermaid
-# flowchart LR
-#   chatbot --> pause[interrupt_before]
-#   pause --> edit[update_state ORD-1 to ORD-2]
-#   edit --> tools --> chatbot
-# ```
 
 from typing import Annotated, TypedDict
 

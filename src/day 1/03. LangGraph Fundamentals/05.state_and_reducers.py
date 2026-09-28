@@ -22,13 +22,6 @@
 # Example: same ticket path normalize → enrich for ORD-1, plus touch_count /
 # events / messages that accumulate across both nodes.
 # Still limited: the path is scripted — the model cannot call tools in a loop.
-#
-# ```mermaid
-# flowchart LR
-#   START --> normalize
-#   normalize --> enrich
-#   enrich --> END
-# ```
 
 from operator import add
 from typing import Annotated, TypedDict
@@ -38,7 +31,6 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
 ORDERS = {"ORD-1": "shipped", "ORD-2": "pending"}
-
 
 class TicketState(TypedDict):
     # plain types → overwrite (last node wins)
@@ -50,7 +42,6 @@ class TicketState(TypedDict):
     events: Annotated[list[str], add]  # add(old, new) — list concat
     messages: Annotated[list, add_messages]  # append messages (not raw list +)
 
-
 def normalize(state: TicketState) -> dict:
     oid = state["order_id"].strip().upper()
     return {
@@ -59,7 +50,6 @@ def normalize(state: TicketState) -> dict:
         "events": ["normalized"],
         "messages": [HumanMessage(content=f"Need help with {oid}")],
     }
-
 
 def enrich(state: TicketState) -> dict:
     status = ORDERS.get(state["order_id"], "not found")
@@ -72,7 +62,6 @@ def enrich(state: TicketState) -> dict:
         "messages": [AIMessage(content=note)],
     }
 
-
 builder = StateGraph(TicketState)
 builder.add_node("normalize", normalize)
 builder.add_node("enrich", enrich)
@@ -80,7 +69,6 @@ builder.add_edge(START, "normalize")
 builder.add_edge("normalize", "enrich")
 builder.add_edge("enrich", END)
 app = builder.compile()
-
 
 print(app.get_graph().draw_mermaid())
 print("-" * 100)

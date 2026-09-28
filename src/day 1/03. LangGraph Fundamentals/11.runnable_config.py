@@ -1,6 +1,8 @@
 # 11 — RunnableConfig extras (recursion_limit, metadata)
 #
-# Concept: invoke/stream take a config dict. Besides configurable.thread_id,
+# Concept: invoke/stream take a config dict you pass every time.
+# There is no config_id. Config does not float onto a thread by itself.
+# Besides configurable.thread_id (persistence lesson; omitted here — no checkpointer),
 # common top-level keys are:
 #   recursion_limit — max graph steps before GraphRecursionError (default ~25)
 #   metadata        — free-form dict for this run (logging, tracing, node reads)
@@ -15,14 +17,6 @@
 #
 # Example: order-support node reads metadata; agent loop uses a low recursion_limit.
 # Still limited: MemorySaver dies when the process exits.
-#
-# ```mermaid
-# flowchart TD
-#   START --> chatbot
-#   chatbot -->|tool_calls| tools
-#   tools --> chatbot
-#   chatbot -->|done| END
-# ```
 
 from typing import Annotated, TypedDict
 
@@ -39,21 +33,17 @@ load_dotenv()
 
 ORDERS = {"ORD-1": "shipped", "ORD-2": "pending"}
 
-
 class TicketState(TypedDict):
     messages: Annotated[list, add_messages]
     desk: str
-
 
 @tool
 def lookup_order(order_id: str) -> str:
     """Look up order status by id."""
     return ORDERS.get(order_id, f"Order {order_id} not found")
 
-
 tools = [lookup_order]
 model = init_chat_model(model="groq:openai/gpt-oss-20b").bind_tools(tools)
-
 
 def chatbot(state: TicketState, config: RunnableConfig) -> dict:
     # metadata is on the config for this invoke — not part of TicketState
@@ -65,7 +55,6 @@ def chatbot(state: TicketState, config: RunnableConfig) -> dict:
         "messages": [model.invoke(state["messages"])],
     }
 
-
 graph = StateGraph(TicketState)
 graph.add_node("chatbot", chatbot)
 graph.add_node("tools", ToolNode(tools))
@@ -73,7 +62,6 @@ graph.add_edge(START, "chatbot")
 graph.add_conditional_edges("chatbot", tools_condition)
 graph.add_edge("tools", "chatbot")
 app = graph.compile()
-
 
 print(app.get_graph().draw_mermaid())
 print("-" * 100)

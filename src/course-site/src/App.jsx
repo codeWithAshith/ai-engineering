@@ -327,6 +327,9 @@ function Nav({ route, item, open, onGo }) {
 
 function Article({ item, prev, next }) {
   const [evolutionOpen, setEvolutionOpen] = useState(false);
+  useEffect(() => {
+    setEvolutionOpen(false);
+  }, [item?.id]);
   if (!item) {
     return (
       <article className="w-full">

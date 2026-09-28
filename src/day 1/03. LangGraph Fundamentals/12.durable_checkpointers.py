@@ -8,13 +8,6 @@
 #
 # Example: order-support thread that recalls the active order id ORD-2.
 # Still limited: you can persist state, but not inspect or correct a bad ticket mid-run.
-#
-# ```mermaid
-# flowchart LR
-#   START --> chatbot
-#   chatbot --> END
-#   db[(SQLite)] -.-> chatbot
-# ```
 
 from pathlib import Path
 from typing import Annotated, TypedDict
@@ -30,17 +23,13 @@ load_dotenv()
 
 DB = Path(__file__).parent / "_checkpoints.sqlite"
 
-
 class TicketState(TypedDict):
     messages: Annotated[list, add_messages]
 
-
 model = init_chat_model(model="groq:openai/gpt-oss-20b")
-
 
 def chatbot(state: TicketState) -> dict:
     return {"messages": [model.invoke(state["messages"])]}
-
 
 graph = StateGraph(TicketState)
 graph.add_node("chatbot", chatbot)
