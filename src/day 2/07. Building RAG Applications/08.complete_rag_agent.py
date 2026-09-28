@@ -6,12 +6,9 @@
 #   • Day 2 Section 05: Agent memory (Store, context growth strategies)
 #   • Day 2 Section 06/07: RAG (policy search over documents)
 #
-# Evolution of Production Agents:
-#   2022: Separate chatbot + search → no integration
-#   2023 Q1: Tools OR RAG → not both together
-#   2023 Q3: Hybrid agents → tools + retrieval in one system
-#   2024-Present: Full-stack agents → structured tools + RAG + memory + middleware
-#   Takeaway: Modern agents COMPOSE all capabilities, not choose one.
+# What this file is:
+#   One create_agent with the pieces from the earlier files: an ORDERS tool, a policy retriever tool, a Store, and context middleware.
+#   Those pieces were not invented as a single product. This lesson is the first time this course wires them together.
 #
 # This lesson is your CAPSTONE:
 #   - Tests understanding of entire curriculum

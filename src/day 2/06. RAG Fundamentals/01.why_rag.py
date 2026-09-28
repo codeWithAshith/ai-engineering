@@ -3,12 +3,11 @@
 # Concept: LLMs lack private / fresh policy knowledge. RAG retrieves YOUR docs at
 # query time and grounds the answer in actual sources.
 #
-# Evolution of Private Knowledge Access:
-#   2020-2021: Fine-tune on proprietary data → expensive, static, no citations
-#   2022 Q1: Hardcode policies in prompts → token limits, not scalable
-#   2022 Q3: RAG emerges → Lewis et al. paper → retrieve then generate
-#   2023-Present: RAG standard for private/fresh facts → LangChain, LlamaIndex ecosystems
-#   Takeaway: RAG won because it's updatable, citable, and cost-effective.
+# Where this came from:
+#   Lewis et al., "Retrieval-Augmented Generation," 2020: retrieve passages, then generate.
+#   Fine-tuning bakes facts into weights. A policy change means another training run, and no citation.
+#   Stuffing the whole policy into the prompt hits the context window.
+#   This course uses RAG for Acme policies because the docs can change and the answer can name the file.
 #
 # Day 1 ORDERS dict can answer "status of ORD-1" (structured lookup) but NOT:
 #   "What is the refund window?" / "How long is standard shipping?"

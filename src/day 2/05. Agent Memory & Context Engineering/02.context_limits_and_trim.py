@@ -4,12 +4,10 @@
 #   Problem: Extra tokens = higher cost, noise, truncation
 #   Solution: trim_messages keeps only recent history for the model
 #
-# Evolution of Context Management:
-#   2022: No limits → threads grew unbounded → models degraded or crashed
-#   2023 Q1: Manual slicing (history[-10:]) → fragile, breaks mid-conversation
-#   2023 Q2: trim_messages introduced → smart token-aware truncation
-#   2024–Present: Middleware auto-trims + summarizes as context grows
-#   Takeaway: Context management is now declarative, not manual slicing.
+# Where this came from:
+#   The cheap version is history[-10:], which can start the list on a tool result and break the chat API.
+#   trim_messages counts tokens, keeps the tail, and can force the slice to start on a human message.
+#   The checkpointer still has the full thread. Trim only changes what this invoke sends.
 #
 # Limitation overcome: Day 1 agents append messages forever.
 # Still limited: trimming drops facts — long-term prefs need Store (next lesson).

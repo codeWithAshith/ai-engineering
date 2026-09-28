@@ -8,12 +8,10 @@
 #   2. Similarity search (find chunks with closest vectors)
 #   3. Retrieve via stable Retriever API (returns list[Document])
 #
-# Evolution of RAG Query Patterns:
-#   2022: Manual cosine similarity loops → error-prone, not reusable
-#   2023 Q1: Vector stores with .similarity_search() → better, but coupled to store type
-#   2023 Q3: Retriever interface introduced → decoupled, composable with LCEL
-#   2024-Present: Advanced retrievers (reranking, hybrid, multi-query) → better precision
-#   Takeaway: Retriever is the standard interface for "question in → docs out"
+# Two ways to ask the same index:
+#   store.similarity_search(q, k=2) is the vector store's own method.
+#   store.as_retriever() is the LangChain runnable: question in, documents out, so a chain does not import the store type.
+#   Rerankers and hybrid search are extra retrievers. This file is the basic one.
 #
 # Why Retriever matters:
 #   store.similarity_search(q, k=2)  — ties you to THIS vector store's API

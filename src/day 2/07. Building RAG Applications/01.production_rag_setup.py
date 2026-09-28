@@ -9,11 +9,9 @@
 #   3. Chunk with metadata preservation
 #   4. Index and create retriever
 #
-# Evolution of RAG Ingestion:
-#   2022: Manual scripts per project → no reuse
-#   2023 Q1: Copy-paste ingest functions → fragile
-#   2023 Q3: LangChain DocumentLoaders → standardized interfaces
-#   2024-Present: Pipeline composition → chunk_and_index(load(folder))
+# What this file actually does:
+#   Directory loaders have been in LangChain since the early library, not a late add-on.
+#   This lesson is those steps in one script: folder → documents → optional sections → chunks that keep source metadata → retriever.
 #   Takeaway: Production RAG = composable pipeline, not ad-hoc scripts.
 #
 # Why this matters:
