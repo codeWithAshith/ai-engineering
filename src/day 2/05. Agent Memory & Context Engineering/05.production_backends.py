@@ -1,4 +1,4 @@
-# 10 — Production backends (Postgres store, Postgres checkpointer, summarization)
+# 05 — Production backends (Postgres store, Postgres checkpointer, summarization)
 #
 # Concept: same APIs as InMemory / MemorySaver / SummarizationMiddleware,
 # swapped for production. Order-support prefs + threads still use the same shapes.
