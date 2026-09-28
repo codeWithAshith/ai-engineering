@@ -4,6 +4,13 @@
 #   prompt | model  means: fill the template, then call the model
 #   chain.invoke(inputs) runs that pipeline
 #
+# Evolution of Chain Composition:
+#   2022: Manual composition (prompt.invoke, then model.invoke) — verbose, error-prone
+#   2023 Q1: Chain classes (LLMChain, SimpleSequentialChain) — rigid, hard to customize
+#   2023 Q2: LCEL | operator introduced — composable, standard interface
+#   2024–Present: create_agent wraps LCEL + tools + memory as one API
+#   Takeaway: Still see old LLMChain code? That's why we use | now. LCEL is the standard.
+#
 # Example: geography tutor prompt piped into the chat model.
 
 from dotenv import load_dotenv

@@ -8,6 +8,14 @@
 #
 # MemorySaver keeps checkpoints in RAM keyed by thread_id.
 #
+# Evolution of Agent Memory:
+#   2022: No memory → rebuild context from database every call (expensive, slow)
+#   2023 Q1: Manual session dicts in Redis/Postgres → custom implementation per project
+#   2023 Q3: MemorySaver introduced → in-memory checkpoints (lost on process restart)
+#   2023 Q4: SqliteSaver → durable checkpoints survive restart
+#   2024–Present: Postgres/SQLite checkpointers + time-travel (get_state_history)
+#   Takeaway: Memory is now built into graphs, not bolted on as external middleware.
+#
 # Config shapes:
     10|#   {"configurable": {"thread_id": "support-1"}}  
 #     → latest checkpoint for that thread (normal multi-turn chat)
