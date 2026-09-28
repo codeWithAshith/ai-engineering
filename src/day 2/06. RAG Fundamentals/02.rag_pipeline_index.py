@@ -9,11 +9,10 @@
 #   3. Embed chunks (text → vectors via nomic-embed-text)
 #   4. Store vectors (InMemoryVectorStore for quick similarity search)
 #
-# Evolution of RAG Indexing:
-#   2022: Manual chunking with fixed offsets → brittle, context loss
-#   2023 Q1: RecursiveCharacterTextSplitter → respect sentence boundaries
-#   2023 Q3: Metadata preservation → enable citations
-#   2024-Present: Advanced chunkers (semantic, parent-child) → better context
+# What this file actually does:
+#   Document is page_content plus metadata. RecursiveCharacterTextSplitter splits on paragraphs and sentences, not on a fixed character offset.
+#   The same embedding model must be used for chunks and for the question later.
+#   Semantic chunkers and parent-child chunkers exist. This file does not use them.
 #   Takeaway: Chunking strategy matters more than embedding model choice.
 #
 # Limitation overcome: without structured docs, policy text is unindexed and unsearchable.

@@ -5,12 +5,10 @@
 #   2. Answer quality: Is the final response accurate and grounded?
 #   3. Failure modes: Where does the system break?
 #
-# Evolution of RAG Evaluation:
-#   2022: Manual spot-checking → not scalable, misses edge cases
-#   2023 Q1: Unit tests on retrieval → better, but ignores answer quality
-#   2023 Q3: LLM-as-judge introduced → automated answer quality checks
-#   2024-Present: Synthetic question generation + precision/recall metrics
-#   Takeaway: Test BOTH retrieval (precision/recall) AND generation (grounding/accuracy).
+# What this file actually does:
+#   Retrieval check: did the right source file come back?
+#   Answer check: an LLM-as-judge scores grounding. That pattern spread with model-judging papers in 2023 (for example MT-Bench). It is not a LangChain release.
+#   A judge model can be wrong. Treat the score as a flag, not a proof.
 #
 # Why evaluation matters:
 #   • Catch regressions when updating embeddings or chunking strategy

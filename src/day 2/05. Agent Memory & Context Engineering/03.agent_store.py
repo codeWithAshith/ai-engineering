@@ -4,12 +4,11 @@
 #   checkpointer (Day 1) = chat history for ONE thread_id
 #   store (Day 2)        = user/company facts shared across ALL threads
 #
-# Evolution of Long-Term Memory:
-#   2022: External databases → custom schema per project, hard to integrate
-#   2023 Q1: Redis/Postgres session stores → still manual tool wiring
-#   2023 Q3: LangGraph Store introduced → namespace + key/value, built-in tool support
-#   2024–Present: Store + ToolRuntime → tools automatically read/write memory
-#   Takeaway: Long-term memory is now first-class, not external middleware.
+# Where this came from:
+#   A checkpointer (Day 1) saves one thread. It does not share "email me" across new thread ids.
+#   People kept that in their own database and passed it into the prompt by hand.
+#   LangGraph's Store (2024, with the graph library) is a namespaced key/value beside the checkpointer.
+#   ToolRuntime.store lets a tool read and write that store during a call.
 #
 # Limitation overcome: trim_messages and checkpointers can't remember preferences
 # after a new support thread starts (e.g., "email me, don't call").

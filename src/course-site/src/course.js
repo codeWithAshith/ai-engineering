@@ -12,49 +12,65 @@ export const course = {
           "title": "01. Langchain Fundamentals",
           "items": [
             {
+              "id": "lesson:day 1/01. Langchain Fundamentals/00.what_langchain_is",
+              "kind": "lesson",
+              "title": "What LangChain is",
+              "n": "00",
+              "learn": "Three pictures before the first line of code.",
+              "day": 1,
+              "module": "01. Langchain Fundamentals",
+              "notes": [
+                "**Lego.** LangChain is a box of bricks: a model, a prompt, a parser, a tool, a retriever. You snap the ones you need into an application you can run again.",
+                "**One remote.** A model API, a vector database, and a parser each come with their own controls. LangChain is the single remote that drives them from one place.",
+                "**Swap the brick, keep the build.** OpenAI, Anthropic, Gemini, or a local model such as Llama can sit behind the same call. You change the provider string. You do not rewrite the application."
+              ]
+            },
+            {
               "id": "lesson:day 1/01. Langchain Fundamentals/01.chat_models.py",
               "kind": "lesson",
               "title": "Chat models",
               "n": "01",
               "animation": "llm-call",
-              "learn": "A chat model is the API object you call. Nothing here trains weights.",
-              "file": "01.chat_models.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "Every later file talks to the same kind of object. If \"chat model\" is fuzzy, `invoke`, agents, and RAG will all feel like magic."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "`init_chat_model(\"groq:openai/gpt-oss-20b\")` builds a client from a provider string. `model.invoke(messages)` sends the list and returns an `AIMessage`. The model does not remember the previous call unless those messages are in the next list."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "A geography tutor answers \"What is the capital of …?\". Watch the reply object, not a chat UI."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "This is not Ollama embeddings and not an agent. One call, one answer. If the key is missing from `.env`, fix that before debugging the prompt."
-                }
-              ]
+                            "learn": "A chat model is the object you call. You are not training anything.",
+                "notes": [
+                  "Every later lesson talks to this same object.",
+                  "`init_chat_model(\"groq:openai/gpt-oss-20b\")` builds the client from a provider string.",
+                  "`model.invoke(messages)` sends the list and returns an `AIMessage`.",
+                  "The model does not remember the last call. Memory is whatever you put in the next list."
+                ],
+                "snippet": "model = init_chat_model(model=\"groq:openai/gpt-oss-20b\")\nresult = model.invoke([\n    SystemMessage(...),\n    HumanMessage(content=\"What is the capital of France?\"),\n])\nprint(result.content)",
+                "sample": "Result type: AIMessage\nContent: The capital of France is Paris.",
+                "evolution": {
+                               "title": "How chat models got called",
+                               "subtitle": "From ChatOpenAI to init_chat_model",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "2022 – early 2023",
+                                   "name": "ChatOpenAI, one class per vendor",
+                                   "what": "LangChain shipped a class per provider: ChatOpenAI, ChatAnthropic, and others, imported from langchain.chat_models. Argument names differed (model_name, openai_api_key).",
+                                   "flaw": "A snippet written for ChatOpenAI does not run on Groq or Anthropic. Swapping the model meant a new class.",
+                                   "shift": "Keep the messages. Change how the client is built."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "2023 – 2024",
+                                   "name": "Partner packages, still a class",
+                                   "what": "ChatOpenAI moved to langchain_openai. You still constructed that class by hand. Most tutorials on the internet are still this file.",
+                                   "flaw": "The call site names the vendor, so a shared example cannot say “use whatever key you have.”",
+                                   "shift": "One function, and a string that names the provider."
+                                 },
+                                 {
+                                   "era": "Era 3",
+                                   "years": "LangChain 1.0 · 2025",
+                                   "name": "init_chat_model",
+                                   "what": "init_chat_model(\"groq:openai/gpt-oss-20b\") builds the client. invoke is the same method the old ChatOpenAI object had.",
+                                   "standard": "When an old file says ChatOpenAI(...), it is the previous way to build this same object."
+                                 }
+                               ],
+                               "takeaway": "Old code says ChatOpenAI. This course says init_chat_model. Both end at invoke."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/02.messages.py",
@@ -62,337 +78,303 @@ export const course = {
               "title": "Messages",
               "n": "02",
               "animation": "messages",
-              "learn": "A conversation is a list of typed messages, not one string.",
-              "file": "02.messages.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "\"The prompt\" is a sloppy word. The model only sees the list you pass. Get the types wrong and history, tools, and system rules collapse into one blob."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "ul",
-                  "items": [
-                    "`SystemMessage` — standing instructions.",
-                    "`HumanMessage` — the user.",
-                    "`AIMessage` — prior model replies, sent back as history."
-                  ]
-                },
-                {
-                  "type": "p",
-                  "text": "You build the list in Python, then `model.invoke(messages)`."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "A short geography chat with more than one turn, then one invoke."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "The model has no memory of last invoke. \"What about France?\" only works if Germany is still in the list."
-                }
-              ]
+                            "learn": "A conversation is a list of typed messages, not one string.",
+                "notes": [
+                  "The model only sees the list you pass.",
+                  "`SystemMessage` is the standing rule. `HumanMessage` is the user. `AIMessage` is a prior reply you send back as history.",
+                  "\"What about France?\" only works if the Germany turn is still in that list."
+                ],
+                "snippet": "messages = [\n    SystemMessage(...),\n    HumanMessage(content=\"What is the capital of Germany?\"),\n    AIMessage(content=\"The capital of Germany is Berlin.\"),\n    HumanMessage(content=\"What about France?\"),\n]\nmodel.invoke(messages)",
+                "sample": "Model reply: The capital of France is Paris.",
+                "evolution": {
+                               "title": "How a prompt became a list",
+                               "subtitle": "From one string to SystemMessage, HumanMessage, AIMessage",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "2022",
+                                   "name": "PromptTemplate was one string",
+                                   "what": "Completion models took a single formatted string. There were no roles.",
+                                   "flaw": "A system rule and a user question were the same blob of text.",
+                                   "shift": "Chat endpoints needed roles."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "2023",
+                                   "name": "Chat roles",
+                                   "what": "The chat API takes system, user, and assistant. LangChain named those SystemMessage, HumanMessage, and AIMessage.",
+                                   "flaw": "The model still does not remember the previous invoke. You resend the list.",
+                                   "shift": "The list is the prompt."
+                                 },
+                                 {
+                                   "era": "Era 3",
+                                   "years": "2024 – now",
+                                   "name": "Same list, more item types",
+                                   "what": "Tool calls and images are more items on that list. They did not replace the three roles.",
+                                   "standard": "Build the list. Then invoke it."
+                                 }
+                               ],
+                               "takeaway": "There is no hidden memory between invokes. If it is not in the list, the model did not see it."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/03.prompt_templates.py",
               "kind": "lesson",
               "title": "Prompt templates and few-shot",
               "n": "03",
-              "learn": "Templates fill variables. Few-shot examples steer format without a fake chat log.",
-              "file": "03.prompt_templates.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "Concatenating f-strings for prompts breaks the moment you have a system rule plus a question plus examples. Templates are the reusable list."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "`ChatPromptTemplate` fills `{country}` (and friends) into messages. Few-shot means a couple of Q→A pairs in the system text so the model copies format and tone. That is not a database and not checkpointed history."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "Geography tutor template plus two capital examples."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "Few-shot is not RAG. You are not retrieving docs. You are showing the shape of a good answer."
-                }
-              ]
+                            "learn": "A template fills variables. A few examples in the system text steer the shape of the answer.",
+                "demo": "prompt-mad-libs",
+                "notes": [
+                  "The sentence stays. Only `{topic}` changes. That is the template.",
+                  "f-strings fall apart once you have a rule, a question, and examples.",
+                  "`ChatPromptTemplate` fills `{country}` into a reusable message list.",
+                  "Few-shot here is two Q→A pairs in the system text. That is not a database and not chat history."
+                ],
+                "snippet": "messages = template.invoke({\"topic\": \"European capitals\", \"country\": \"France\"})",
+                "sample": "country='France'\nResponse: The capital of France is Paris.",
+                "evolution": {
+                               "title": "How prompts became reusable",
+                               "subtitle": "From PromptTemplate to ChatPromptTemplate",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "2022",
+                                   "name": "PromptTemplate",
+                                   "what": "A string with {variables}, formatted in Python, sent as one completion prompt.",
+                                   "flaw": "Chat models do not want one string. They want a list of messages.",
+                                   "shift": "A template per message."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "2023",
+                                   "name": "ChatPromptTemplate.from_messages",
+                                   "what": "System and human are separate templates. .invoke(variables) returns the message list.",
+                                   "flaw": "Few-shot examples are not a second feature. They are extra lines in the system template, or a FewShotChatMessagePromptTemplate.",
+                                   "shift": "Holes for what changes. Examples for the shape of the answer."
+                                 },
+                                 {
+                                   "era": "Era 3",
+                                   "years": "Still",
+                                   "name": "What this file is doing",
+                                   "what": "Two capital Q→A pairs sit in the system text so the model copies the tone. That is not retrieved documents and not checkpointed history.",
+                                   "standard": "Template for reuse. Few-shot for shape. A real thread is messages you actually had."
+                                 }
+                               ],
+                               "takeaway": "Few-shot is not RAG. You are showing a good answer, not searching a corpus."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/04.chains.py",
               "kind": "lesson",
               "title": "Chains",
               "n": "04",
-              "learn": "The pipe `|` is a pipeline: fill the template, then call the model.",
-              "file": "04.chains.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "You will get tired of `prompt.invoke` then `model.invoke`. A chain is one runnable with one `.invoke`."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "`prompt | model` means: take inputs, fill the template, send messages, return an `AIMessage`. `chain.invoke(inputs)` runs that pipeline. Later you will stick a parser on the end."
-                },
-                {
-                  "type": "p",
-                  "text": "This is still a **workflow you wrote**. The model does not choose the next step."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "Geography tutor prompt piped into the chat model."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "A chain is not an agent. There is no tool loop. If you need \"maybe look up the order\", you are in the wrong lesson."
-                }
-              ]
+                            "learn": "The pipe is a pipeline you wrote: fill the template, then call the model.",
+                "notes": [
+                  "`prompt | model` is one runnable. `chain.invoke(inputs)` runs both steps.",
+                  "You still chose every step. The model does not pick the next one.",
+                  "Old names like `LLMChain` are the same idea with more boilerplate."
+                ],
+                "snippet": "chain = prompt | model\nchain.invoke({\"topic\": \"European capitals\", \"country\": \"France\"})",
+                "sample": "Result type: AIMessage\nContent: The capital of France is Paris.",
+                "evolution": {
+                               "title": "How steps got composed",
+                               "subtitle": "From LLMChain to the pipe",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "2022 – mid 2023",
+                                   "name": "LLMChain",
+                                   "what": "The documented object was LLMChain(llm=..., prompt=...). SequentialChain stacked those.",
+                                   "flaw": "A new class whenever the pipeline changed. You still see LLMChain in old repos.",
+                                   "shift": "Compose runnables instead of subclassing them."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "August 2023",
+                                   "name": "LCEL, the pipe",
+                                   "what": "prompt | model is a runnable. chain.invoke(inputs) fills the template and calls the model. LangChain Expression Language is this.",
+                                   "flaw": "The model still does not choose the next step. You wrote the path.",
+                                   "shift": "If you need a branch, this is the wrong tool."
+                                 },
+                                 {
+                                   "era": "Era 3",
+                                   "years": "0.2 and after",
+                                   "name": "Don’t start from LLMChain",
+                                   "what": "Current docs build chains with the pipe. LLMChain is the old class for the same idea.",
+                                   "standard": "A chain is a path you fixed. An agent is a path the model chooses."
+                                 }
+                               ],
+                               "takeaway": "If the next step depends on the answer, you have left chains."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/05.output_parsers.py",
               "kind": "lesson",
               "title": "Output parsers",
               "n": "05",
-              "learn": "Parsers turn an AIMessage into a Python value so you do not scrape .content by hand.",
-              "file": "05.output_parsers.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "Application code wants a `str`, a list, or a dict. Leaving `AIMessage.content` everywhere is how JSON-in-a-paragraph bugs start."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "A parser sits at the end of a chain: `prompt | model | parser`. `StrOutputParser` gives you the text. JSON parsers give you a dict. You are still parsing **text the model chose to write**."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "Geography tutor chain ending in a string parser or JSON."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "If you need `result.capital` as a typed field, the next lesson (`with_structured_output`) is the better tool. Parsers are cleanup. Structured output is a contract."
-                }
-              ]
+                            "learn": "A parser turns the model's text into a Python value.",
+                "notes": [
+                  "App code wants a string, a list, or a dict.",
+                  "`prompt | model | StrOutputParser()` gives you the text.",
+                  "A JSON parser still trusts text the model chose to write. It cleans up. It does not force the shape."
+                ],
+                "snippet": "text = (prompt | model | StrOutputParser()).invoke({...})",
+                "sample": "str: The capital of France is Paris.\nlist: ['Paris', 'Berlin', 'Rome']",
+                "evolution": {
+                               "title": "How replies became values",
+                               "subtitle": "From .content to a parser on the pipe",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "Early chat calls",
+                                   "name": "Read .content",
+                                   "what": "invoke returned an AIMessage. Application code sliced the string.",
+                                   "flaw": "A list or a dict meant split, strip, and json.loads, and one extra sentence broke it.",
+                                   "shift": "Put a parser at the end of the pipe."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "With LCEL, 2023",
+                                   "name": "StrOutputParser and JsonOutputParser",
+                                   "what": "prompt | model | StrOutputParser() gives a string. JsonOutputParser asks for JSON and parses it.",
+                                   "flaw": "The model can still ignore the format. The parser only cleans what came back.",
+                                   "shift": "A schema, when the app needs fields."
+                                 },
+                                 {
+                                   "era": "Era 3",
+                                   "years": "Next file",
+                                   "name": "Parser versus contract",
+                                   "what": "Use a parser for text and simple lists. Use with_structured_output when you need result.capital.",
+                                   "standard": "A parser does not force the model. A bound schema does."
+                                 }
+                               ],
+                               "takeaway": "If you need named fields, stop parsing prose."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/06.structured_outputs.py",
               "kind": "lesson",
               "title": "Structured outputs",
               "n": "06",
-              "learn": "Bind a Pydantic schema so the model returns an object, not text you parse later.",
-              "file": "06.structured_outputs.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "Apps need fields. \"Please reply in JSON\" plus a parser still lets the model wander. Binding a schema is the reliable exit."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "`with_structured_output(Schema)` attaches the schema to the model. You get a Pydantic object (`country`, `capital`, …)."
-                },
-                {
-                  "type": "table",
-                  "headers": [
-                    "Need",
-                    "Use"
-                  ],
-                  "rows": [
-                    [
-                      "Cleanup of text the model already wrote",
-                      "Output parser (previous lesson)"
-                    ],
-                    [
-                      "App data with named fields",
-                      "Structured output (this lesson)"
-                    ]
-                  ]
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "A capital answer as a small schema."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "This is not a tool. The model is not calling `lookup_order`. It is filling a form. Some providers also cannot mix JSON response format with tools on the same agent — we hit that later."
-                }
-              ]
+                            "learn": "Bind a schema so the model returns an object, not text you hope is JSON.",
+                "notes": [
+                  "`with_structured_output(CapitalInfo)` attaches the Pydantic model to the call.",
+                  "You read `result.capital`, not a paragraph.",
+                  "This is not a tool. The model is filling a form, not looking up an order."
+                ],
+                "snippet": "result = model.with_structured_output(CapitalInfo).invoke(messages)\nprint(result.capital)",
+                "sample": "result.country = France\nresult.capital = Paris",
+                "evolution": {
+                               "title": "How JSON stopped being a wish",
+                               "subtitle": "From “reply in JSON” to with_structured_output",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "2023",
+                                   "name": "JSON in the prompt",
+                                   "what": "People wrote “return only JSON” and called json.loads on .content.",
+                                   "flaw": "A preamble or a trailing sentence crashed the parser.",
+                                   "shift": "Make the provider emit the schema."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "Late 2023",
+                                   "name": "with_structured_output",
+                                   "what": "Chat models gained with_structured_output(Schema). LangChain maps that onto the provider’s JSON mode or tool-calling.",
+                                   "flaw": "Quality depended on the provider. Some only approximated the schema.",
+                                   "shift": "Stricter JSON schema modes."
+                                 },
+                                 {
+                                   "era": "Era 3",
+                                   "years": "2024 – now",
+                                   "name": "The object is the return value",
+                                   "what": "OpenAI structured outputs and the same idea on other providers constrain generation to the schema. You read Pydantic fields.",
+                                   "standard": "This is not a tool call. The model is filling CapitalInfo, not looking up an order."
+                                 }
+                               ],
+                               "takeaway": "Do not prompt for JSON when with_structured_output can bind the schema."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/07.streaming.py",
               "kind": "lesson",
               "title": "Streaming",
               "n": "07",
-              "learn": "stream() yields tokens as they arrive. invoke() waits for the full AIMessage.",
-              "file": "07.streaming.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "A support UI that freezes until the last token feels broken. Streaming is how you show progress. The answer is the same; the delivery is not."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "`model.stream(messages)` yields chunks. `model.invoke` returns once, with everything. Use invoke when you only need the finished object (parsers, tests). Use stream when a human is watching."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "Stream the France capital answer token by token."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "Streaming is not batching, and it is not LangGraph `stream_mode`. Those come later. This is one model call, chunked."
-                }
-              ]
+                            "learn": "stream yields tokens as they arrive. invoke waits for the whole reply.",
+                "notes": [
+                  "The answer is the same. A person watching should not stare at a blank screen.",
+                  "`model.stream(messages)` yields chunks. Print `chunk.content` as it arrives.",
+                  "Use invoke when a program needs the finished object."
+                ],
+                "snippet": "for chunk in model.stream(messages):\n    print(chunk.content, end=\"\", flush=True)",
+                "sample": "The capital of France is Paris…\n(words appear as they are generated)",
+                "evolution": {
+                               "title": "How answers stopped arriving all at once",
+                               "subtitle": "invoke waits. stream yields tokens.",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "Chat API, 2023",
+                                   "name": "stream=True",
+                                   "what": "The OpenAI chat API could stream tokens from the first release. The HTTP body arrived in chunks.",
+                                   "flaw": "Each SDK spelled that differently.",
+                                   "shift": "One method on the chat model."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "LCEL",
+                                   "name": "model.stream",
+                                   "what": "model.stream(messages) yields chunks. chunk.content is the new text. model.invoke still waits for the full AIMessage.",
+                                   "flaw": "A half-written reply is not JSON you can parse.",
+                                   "shift": "Stream when a person is watching. Invoke when code needs the finished object."
+                                 }
+                               ],
+                               "takeaway": "Streaming is earlier text on screen, not a different model."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/08.batch_processing.py",
               "kind": "lesson",
               "title": "Batch processing",
               "n": "08",
-              "learn": "batch() runs many independent prompts in one call instead of your own for-loop of invoke.",
-              "file": "08.batch_processing.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "Ten unrelated \"capital of …?\" questions do not need ten sequential round trips if the API can take a list."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "`model.batch([inputs…])` — each input is its own conversation. There is no shared history between items. Order of results matches the list."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "Several capital questions in one batch."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "Batch is not an agent handling one ticket with several tools. Independent prompts only. If the second question depends on the first answer, you want messages or a graph, not batch."
-                }
-              ]
+                            "learn": "batch runs many independent prompts together, instead of a for-loop of invoke.",
+                "notes": [
+                  "Each item is its own conversation. France does not know about Germany.",
+                  "`model.batch(...)` returns results in the same order.",
+                  "If the second question needs the first answer, use messages, not batch."
+                ],
+                "snippet": "results = model.batch([france, germany, italy])",
+                "sample": "France: Paris.\nGermany: Berlin.\nItaly: Rome.",
+                "evolution": {
+                               "title": "How many questions stopped being a loop",
+                               "subtitle": "A for-loop of invoke, or one batch",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "The obvious code",
+                                   "name": "for question in questions",
+                                   "what": "Each invoke waits for the previous one. Ten capitals means ten round trips.",
+                                   "flaw": "Fine for two questions. Slow for a pile of independent ones.",
+                                   "shift": "Hand the list to the runnable."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "LCEL",
+                                   "name": "model.batch",
+                                   "what": "model.batch([...]) runs independent inputs and returns results in the same order. This is not the OpenAI Batch API, which is an offline job.",
+                                   "flaw": "Items do not share history. A shared rate limit still applies.",
+                                   "standard": "If question two needs the answer to question one, use messages, not batch."
+                                 }
+                               ],
+                               "takeaway": "Batch is for unrelated prompts. It is not an agent on one ticket."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/09.model_parameters.py",
@@ -400,148 +382,120 @@ export const course = {
               "title": "Model parameters",
               "n": "09",
               "animation": "sampling-combo",
-              "learn": "Three sampling knobs. We almost always set temperature and leave the rest alone.",
-              "file": "09.model_parameters.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "Docs list `temperature`, `top_p`, and `top_k` as if you should turn all three. Students who do that cannot tell which knob did what, and tool-calling agents get worse."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "The model does not pick \"the best word\". It samples the next **token** from a probability list. These settings change that list. They do not change the weights."
-                },
-                {
-                  "type": "p",
-                  "text": "**Temperature** — how sharp the list is. `0` ≈ always take the top token (focused, repeatable). `1` ≈ use the probabilities as-is (more variety). **This is the knob we use in class.** Agents that call tools should sit at `0` so the model does not get creative about function names and arguments."
-                },
-                {
-                  "type": "p",
-                  "text": "**top_p (nucleus)** — keep the smallest set of tokens whose probabilities add up to `p`. `top_p=0.9` ignores the long tail of unlikely words. It is another way to cut randomness. You do not need it if temperature is already doing that job."
-                },
-                {
-                  "type": "p",
-                  "text": "**top_k** — keep only the `k` most likely tokens, then sample. A hard cutoff, not a probability mass. Rarely useful on top of temperature."
-                },
-                {
-                  "type": "h2",
-                  "text": "The rule"
-                },
-                {
-                  "type": "p",
-                  "text": "Pick **one** way to limit sampling. In this course: set `temperature`, leave `top_p` and `top_k` at defaults. Do not stack all three \"to be safe\". That is how you get a model that barely talks, or one that still rambles and you cannot say why."
-                },
-                {
-                  "type": "p",
-                  "text": "Max tokens is a **length cap**, not a sampling knob. It does not make answers smarter."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "Same geography question at different temperatures so you can hear the difference. Then we set agents to `0` and stop fiddling."
-                }
-              ]
+                            "learn": "Set temperature. Leave Top-K and Top-P alone unless you have a reason.",
+                "notes": [
+                  "The model samples the next token. Temperature makes that list sharper or flatter.",
+                  "`temperature=0` takes the top token. Use it for tools and structured output.",
+                  "`max_tokens` is a length cap. It does not make the model smarter."
+                ],
+                "snippet": "init_chat_model(model=\"groq:openai/gpt-oss-20b\", temperature=0)",
+                "sample": "temperature=0 → Paris, and the same Paris if you run it again.\ntemperature=1 → a different flourish.",
+                "evolution": {
+                               "title": "How sampling knobs got quieter",
+                               "subtitle": "The knobs are old. Stacking them is a habit.",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "Since the first APIs",
+                                   "name": "temperature, top_p, top_k",
+                                   "what": "Temperature reshapes the next-token probabilities. top_p and top_k cut the candidate list. All three have been on the APIs for years.",
+                                   "flaw": "Notebooks set all three “to be safe,” and then nobody can say which dial did what.",
+                                   "shift": "Turn one dial."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "This course",
+                                   "name": "Temperature only",
+                                   "what": "Tools and structured output use temperature=0. Ordinary chat can sit around 0.7. Leave top_p and top_k at the provider default.",
+                                   "standard": "max_tokens is a length cap, not a sampling knob."
+                                 }
+                               ],
+                               "takeaway": "If you cannot explain the knob, do not turn it."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/10.model_reliability.py",
               "kind": "lesson",
               "title": "Model reliability",
               "n": "10",
-              "learn": "Wrap the model so failed calls retry or fall back — same .invoke API.",
-              "file": "10.model_reliability.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "Groq will 429 or drop. If every lesson crashes on a blip, you will not finish the ticket. Reliability is a wrapper, not a new kind of model."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "`with_retry` repeats the call. `with_fallbacks` tries another model if this one fails. The rest of your code still calls `.invoke`. That is the point: the geography tutor should not know about HTTP."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "Geography tutor through a retry + fallback stack."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "This is not \"the model was wrong so try a different prompt.\" This is transport failure. Bad answers are a prompt, tool, or RAG problem."
-                }
-              ]
+                            "learn": "Retry a blip. Fall back when the provider is down. The lesson still calls invoke.",
+                "notes": [
+                  "`with_retry(stop_after_attempt=3)` repeats rate limits and timeouts.",
+                  "`with_fallbacks([backup])` tries another model after those retries.",
+                  "A wrong capital is not this lesson. That is a prompt, a tool, or a document."
+                ],
+                "snippet": "model = primary.with_retry(stop_after_attempt=3).with_fallbacks([backup])",
+                "sample": "429, then retry, then 200.\n503 three times, then the backup answers.",
+                "evolution": {
+                               "title": "How calls survived a bad minute",
+                               "subtitle": "try/except, then with_retry and with_fallbacks",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "By hand",
+                                   "name": "try/except around invoke",
+                                   "what": "Every script retried 429s and timeouts in its own loop.",
+                                   "flaw": "The lesson code knew about HTTP.",
+                                   "shift": "Put the retry on the runnable."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "LCEL",
+                                   "name": "with_retry, then with_fallbacks",
+                                   "what": "primary.with_retry(stop_after_attempt=3).with_fallbacks([backup]) is still one invoke. Retry runs first. The fallback model runs if those attempts fail.",
+                                   "flaw": "A wrong answer is not a transport error. Retry will not fix a bad prompt.",
+                                   "standard": "Retry rate limits and timeouts. Do not expect a retry to fix a bad API key."
+                                 }
+                               ],
+                               "takeaway": "The geography code should not mention status codes."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/11.multimodal_messages.py",
               "kind": "lesson",
               "title": "Multimodal messages",
               "n": "11",
-              "learn": "A HumanMessage can be a list of blocks (text + image), not only a string.",
-              "file": "11.multimodal_messages.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "blocks": [
-                {
-                  "type": "h2",
-                  "text": "Why this exists"
-                },
-                {
-                  "type": "p",
-                  "text": "The invoke API stays the same when the user sends a picture. You need to know the content is a list of blocks so you are not surprised later."
-                },
-                {
-                  "type": "h2",
-                  "text": "How it works"
-                },
-                {
-                  "type": "p",
-                  "text": "`HumanMessage` content can be `[{type: \"text\", ...}, {type: \"image\", ...}]`. Same `model.invoke`. The provider must support the image; our Groq model here is a light demo, not a vision product course."
-                },
-                {
-                  "type": "h2",
-                  "text": "In class"
-                },
-                {
-                  "type": "p",
-                  "text": "Geography tutor message that includes a tiny image block."
-                },
-                {
-                  "type": "h2",
-                  "text": "Don't mix this up"
-                },
-                {
-                  "type": "p",
-                  "text": "This is not RAG and not embeddings. You are attaching bytes to a message, not searching a corpus."
-                }
-              ]
+                            "learn": "A human message can be text plus an image. invoke stays the same.",
+                "notes": [
+                  "Content can be a list of blocks: text, then an image.",
+                  "You are attaching bytes to a message. You are not searching a corpus.",
+                  "The provider has to accept images. This file shows the shape."
+                ],
+                "snippet": "HumanMessage(content=[{\"type\": \"text\", \"text\": \"...\"}, {\"type\": \"image_url\", \"image_url\": {\"url\": data_url}}])",
+                "sample": "blocks: text, image_url\ninvoke still returns one AIMessage.",
+                "evolution": {
+                               "title": "How a message grew past text",
+                               "subtitle": "From a text-only HumanMessage to content blocks",
+                               "eras": [
+                                 {
+                                   "era": "Era 1",
+                                   "years": "Before vision models",
+                                   "name": "OCR, then a text model",
+                                   "what": "Apps turned a picture into a string with a separate OCR service, then called a text model.",
+                                   "flaw": "Layout was gone, and you ran two systems.",
+                                   "shift": "Send the image on the same request."
+                                 },
+                                 {
+                                   "era": "Era 2",
+                                   "years": "September 2023",
+                                   "name": "GPT-4V",
+                                   "what": "A chat model could take an image. Other vendors followed (Claude 3, Gemini) in 2024. Each SDK had its own image field.",
+                                   "flaw": "Easy to treat vision as a different product.",
+                                   "shift": "Same message type, a list of blocks."
+                                 },
+                                 {
+                                   "era": "Era 3",
+                                   "years": "LangChain",
+                                   "name": "HumanMessage content blocks",
+                                   "what": "content can be [{\"type\": \"text\", ...}, {\"type\": \"image_url\", ...}]. invoke does not change. The provider still has to accept images.",
+                                   "standard": "A screenshot is still a message. Looking up the order is still a tool."
+                                 }
+                               ],
+                               "takeaway": "Multimodal is a richer message, not a new architecture."
+                             }
+
             },
             {
               "id": "lesson:day 1/01. Langchain Fundamentals/12.create_agent.py",

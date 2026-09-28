@@ -1,21 +1,19 @@
 import {
-  ArrowRight,
   ArrowsIn,
   ArrowsOut,
-  CaretLeft,
-  CaretRight,
   CheckCircle,
   ClockCounterClockwise,
   X,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { Rich } from "./Blocks.jsx";
+import { PageFrame } from "./PageFrame.jsx";
 import { SLIDE_DIAGRAMS } from "./TermDiagrams.jsx";
 import { termsDeck, termsHref } from "./terms.js";
 
 export { termsHref };
 
-export function TermsCarousel({ slideId }) {
+export function TermsCarousel({ slideId, edgePrev, edgeNext }) {
   const slides = termsDeck.slides;
   const found = slides.findIndex((s) => s.id === slideId);
   const index = found >= 0 ? found : 0;
@@ -57,56 +55,30 @@ export function TermsCarousel({ slideId }) {
   const DiagramComponent = SLIDE_DIAGRAMS[slide.id];
   const isIframeSlide = Boolean(slide.iframe);
 
+  const framePrev = prev ? { href: termsHref(prev.id), title: prev.term } : edgePrev;
+  const frameNext = next ? { href: termsHref(next.id), title: next.term } : edgeNext;
+
   return (
-    <article className="relative flex flex-col h-full min-h-0 w-full">
-      {/* Pinned Top Header */}
-      <header className="shrink-0 pb-2.5 border-b border-line">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="m-0 font-sans text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">
-            {slide.term}
-          </h1>
-          <div className="flex items-center gap-2">
-            {slide.evolution ? (
-              <button
-                type="button"
-                onClick={() => setIsEvolutionOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors shadow-xs cursor-pointer"
-              >
-                <ClockCounterClockwise size={14} weight="bold" />
-                <span className="hidden sm:inline">How It Evolved</span>
-                <span className="sm:hidden">Evolution</span>
-              </button>
-            ) : null}
-            <a
-              href={prev ? termsHref(prev.id) : undefined}
-              aria-disabled={!prev}
-              className={`inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs font-semibold no-underline transition-all ${
-                prev ? "bg-white text-ink shadow-xs hover:bg-slate-50" : "opacity-30 pointer-events-none text-slate-400"
-              }`}
-            >
-              <CaretLeft size={14} weight="bold" />
-              Prev
-            </a>
-            <a
-              href={next ? termsHref(next.id) : undefined}
-              aria-disabled={!next}
-              className={`inline-flex items-center gap-1 rounded-lg border border-blue-500/30 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 no-underline transition-all ${
-                next ? "shadow-xs hover:bg-blue-100" : "opacity-30 pointer-events-none text-slate-400"
-              }`}
-            >
-              Next
-              <CaretRight size={14} weight="bold" />
-            </a>
-          </div>
-        </div>
-
-        <p className="mt-1 mb-0 font-serif text-[1.05rem] leading-snug text-slate-700">
-          {slide.oneLiner}
-        </p>
-      </header>
-
-      {/* Middle Scrollable Section - Only this part scrolls if content overflows */}
-      <div className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain py-4 pr-1 space-y-4">
+    <PageFrame
+      title={slide.term}
+      lede={slide.oneLiner}
+      prev={framePrev}
+      next={frameNext}
+      actions={
+        slide.evolution ? (
+          <button
+            type="button"
+            onClick={() => setIsEvolutionOpen(true)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-100"
+          >
+            <ClockCounterClockwise size={14} weight="bold" />
+            <span className="hidden sm:inline">How It Evolved</span>
+            <span className="sm:hidden">Evolution</span>
+          </button>
+        ) : null
+      }
+    >
+      <div className="space-y-4">
         {/* Notes */}
         {slide.notes?.length ? (
           <div className="rounded-xl border border-line bg-surface p-4 shadow-xs">
@@ -181,53 +153,6 @@ export function TermsCarousel({ slideId }) {
           </div>
         ) : null}
       </div>
-
-      {/* Pinned Bottom Footer */}
-      <footer className="shrink-0 border-t border-line pt-3 pb-1 flex items-center justify-between gap-2">
-        {prev ? (
-          <a
-            href={termsHref(prev.id)}
-            className="group flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-700 no-underline transition-colors hover:text-blue-600 shrink-0"
-          >
-            <CaretLeft size={15} weight="bold" className="transition-transform group-hover:-translate-x-0.5 shrink-0" />
-            <span className="truncate max-w-[80px] sm:max-w-[150px] md:max-w-none">Prev: {prev.term}</span>
-          </a>
-        ) : (
-          <span />
-        )}
-
-        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center max-w-[45%] sm:max-w-[60%]">
-          {slides.map((item, i) => (
-            <a
-              key={item.id}
-              href={termsHref(item.id)}
-              aria-label={item.term}
-              aria-current={i === index ? "true" : undefined}
-              className={`h-2 rounded-full no-underline transition-all ${
-                i === index ? "w-5 bg-blue-600" : "w-2 bg-slate-300 hover:bg-slate-400"
-              }`}
-            />
-          ))}
-        </div>
-
-        {next ? (
-          <a
-            href={termsHref(next.id)}
-            className="group flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-blue-600 no-underline transition-colors hover:text-blue-700 shrink-0"
-          >
-            <span className="truncate max-w-[80px] sm:max-w-[150px] md:max-w-none">Next: {next.term}</span>
-            <CaretRight size={15} weight="bold" className="transition-transform group-hover:translate-x-0.5 shrink-0" />
-          </a>
-        ) : (
-          <a
-            href="#/d/1"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1 text-xs font-bold text-white no-underline shadow-xs hover:bg-blue-500 shrink-0"
-          >
-            Proceed to Day 1
-            <ArrowRight size={13} weight="bold" />
-          </a>
-        )}
-      </footer>
 
       {/* Fullscreen Expandable Dialog Modal */}
       {isModalOpen && slide.iframe ? (
@@ -427,7 +352,7 @@ export function TermsCarousel({ slideId }) {
           </div>
         </div>
       ) : null}
-    </article>
+    </PageFrame>
   );
 }
 

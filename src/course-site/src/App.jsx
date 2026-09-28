@@ -1,6 +1,9 @@
 import { CaretDown, CaretRight, List, X } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Blocks } from "./Blocks.jsx";
+import { Blocks, Rich } from "./Blocks.jsx";
+import { EvolutionButton, EvolutionDialog } from "./EvolutionDialog.jsx";
+import { PageFrame, linkFor } from "./PageFrame.jsx";
+import { PromptMadLibs } from "./PromptMadLibs.jsx";
 import { TermsCarousel } from "./TermsCarousel.jsx";
 import { course } from "./course.js";
 import { termsDeck, termsHref } from "./terms.js";
@@ -140,13 +143,7 @@ export default function App() {
         />
       ) : null}
       <Nav route={route} item={item} open={menu} onGo={() => setMenu(false)} />
-      <div
-        ref={mainRef}
-        className={cx(
-          "min-w-0 flex-1 flex flex-col",
-          route.kind === "terms" ? "h-dvh overflow-hidden" : "overflow-y-auto",
-        )}
-      >
+      <div ref={mainRef} className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
         <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface/90 px-4 backdrop-blur sm:hidden">
           <button
             className="inline-flex h-10 items-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-medium text-ink"
@@ -162,13 +159,7 @@ export default function App() {
             AI Engineering
           </a>
         </header>
-        <main
-          className={
-            route.kind === "terms"
-              ? "flex-1 min-h-0 flex flex-col p-3 sm:px-6 sm:py-3.5 lg:px-8 w-full"
-              : "px-5 py-8 sm:px-8 lg:px-12 lg:py-10 w-full"
-          }
-        >
+        <main className="flex min-h-0 w-full flex-1 flex-col overflow-hidden px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
           <Article item={item} prev={prev} next={next} />
         </main>
       </div>
@@ -322,6 +313,7 @@ function Nav({ route, item, open, onGo }) {
 }
 
 function Article({ item, prev, next }) {
+  const [evolutionOpen, setEvolutionOpen] = useState(false);
   if (!item) {
     return (
       <article className="w-full">
@@ -333,19 +325,13 @@ function Article({ item, prev, next }) {
 
   if (item.kind === "home") {
     return (
-      <article className="w-full">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-          <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
-          Interactive Course Portal
-        </div>
-        <h1 className="mt-2 mb-4 font-sans text-[2.25rem] leading-[1.12] font-extrabold tracking-tight text-slate-900 sm:text-[2.6rem]">
-          The class is the idea. The files are the proof.
-        </h1>
-        <p className="m-0 mb-8 font-serif text-[1.18rem] leading-relaxed text-slate-600">
-          Each page is a teaching note: why this exists, how it works, what we run in the room, and the mix-up students usually make. Python stays in the day folders.
-        </p>
-
-        <div className="my-8 rounded-2xl border border-line bg-surface p-6 shadow-sm">
+      <PageFrame
+        title="The class is the idea. The files are the proof."
+        lede="Each page is a teaching note: why this exists, how it works, what we run in the room, and the mix-up students usually make. Python stays in the day folders."
+        prev={linkFor(prev, hrefFor)}
+        next={linkFor(next, hrefFor)}
+      >
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
           <h2 className="mb-4 font-sans text-sm font-bold uppercase tracking-wider text-slate-400">
             Course Curriculum
           </h2>
@@ -370,23 +356,18 @@ function Article({ item, prev, next }) {
             />
           </ul>
         </div>
-        <Pager prev={prev} next={next} />
-      </article>
+      </PageFrame>
     );
   }
 
   if (item.kind === "section") {
     return (
-      <article className="w-full">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-          This Session
-        </div>
-        <h1 className="mt-2 mb-3 font-sans text-[2.25rem] leading-[1.15] font-extrabold tracking-tight text-slate-900">
-          {item.title}
-        </h1>
-        <p className="m-0 mb-8 font-serif text-[1.15rem] leading-relaxed text-slate-600">
-          Why it exists, how it works, what we run, and the mix-ups to avoid.
-        </p>
+      <PageFrame
+        title={item.title}
+        lede="Why it exists, how it works, what we run, and the mix-ups to avoid."
+        prev={linkFor(prev, hrefFor)}
+        next={linkFor(next, hrefFor)}
+      >
         {item.groups.map((group) => (
           <section key={group.id} className="mb-8 rounded-2xl border border-line bg-surface p-6 shadow-xs">
             <h2 className="m-0 mb-3 font-sans text-base font-bold text-slate-900">
@@ -410,42 +391,40 @@ function Article({ item, prev, next }) {
             </ul>
           </section>
         ))}
-        <Pager prev={prev} next={next} />
-      </article>
+      </PageFrame>
     );
   }
 
   if (item.kind === "coming-soon") {
     return (
-      <article className="w-full">
-        <p className="m-0 text-[13px] font-medium text-accent">Later</p>
-        <h1 className="mt-2 mb-3 font-sans text-[2.15rem] leading-[1.15] font-semibold tracking-tight text-ink">
-          Days 3 to 10 wait until we publish them.
-        </h1>
-        <p className="m-0 font-serif text-[1.15rem] leading-relaxed text-ink/80">
-          This site is The words, Day 1, and Day 2.
-        </p>
-        <Pager prev={prev} next={next} />
-      </article>
+      <PageFrame
+        title="Days 3 to 10 wait until we publish them."
+        lede="This site is Engineering Notes, Day 1, and Day 2."
+        prev={linkFor(prev, hrefFor)}
+        next={linkFor(next, hrefFor)}
+      />
     );
   }
 
   if (item.kind === "terms") {
-    return <TermsCarousel slideId={item.slide} />;
+    return (
+      <TermsCarousel
+        slideId={item.slide}
+        edgePrev={linkFor(prev, hrefFor)}
+        edgeNext={linkFor(next, hrefFor)}
+      />
+    );
   }
 
   return (
-    <article className="w-full">
-      <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-        {item.day ? `Day ${item.day}` : ""}
-        {item.module ? ` / ${moduleTitle(item.module)}` : ""}
-      </div>
-      <h1 className="mt-2 mb-3 font-sans text-[2.25rem] leading-[1.15] font-extrabold tracking-tight text-slate-900">
-        {item.title}
-      </h1>
-      {item.learn ? (
-        <p className="m-0 mb-4 font-serif text-[1.18rem] leading-relaxed text-slate-600">{item.learn}</p>
-      ) : null}
+    <PageFrame
+      title={item.title}
+      lede={item.learn}
+      actions={item.evolution ? <EvolutionButton onClick={() => setEvolutionOpen(true)} /> : null}
+      prev={linkFor(prev, hrefFor)}
+      next={linkFor(next, hrefFor)}
+    >
+      {item.demo === "prompt-mad-libs" ? <PromptMadLibs /> : null}
       {item.file ? (
         <div className="mt-0 mb-6 flex items-center gap-2 rounded-xl border border-line bg-surface p-3 text-sm text-slate-600 shadow-xs">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Class script:</span>
@@ -454,9 +433,33 @@ function Article({ item, prev, next }) {
           </code>
         </div>
       ) : null}
+      {item.notes?.length ? (
+        <div className="mb-5 rounded-xl border border-line bg-surface p-4 shadow-xs">
+          <ul className="m-0 list-none space-y-2.5 pl-0 font-serif text-[1.05rem] leading-relaxed text-slate-800">
+            {item.notes.map((note, idx) => (
+              <li key={idx} className="flex items-start gap-2.5">
+                <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600" />
+                <span><Rich text={note} /></span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {item.snippet ? (
+        <div className="mb-5">
+          <p className="m-0 mb-2 font-sans text-xs font-bold uppercase tracking-wider text-slate-400">The line that matters</p>
+          <pre className="overflow-x-auto rounded-xl border border-slate-700/80 bg-slate-900 p-4 font-mono text-[0.88rem] leading-relaxed text-slate-100 shadow-sm"><code>{item.snippet}</code></pre>
+        </div>
+      ) : null}
+      {item.sample ? (
+        <div className="mb-5">
+          <p className="m-0 mb-2 font-sans text-xs font-bold uppercase tracking-wider text-slate-400">What the room should see</p>
+          <pre className="overflow-x-auto rounded-xl border border-line bg-paper p-4 font-mono text-[0.88rem] leading-relaxed text-slate-800"><code>{item.sample}</code></pre>
+        </div>
+      ) : null}
       <Blocks blocks={item.blocks} />
-      <Pager prev={prev} next={next} />
-    </article>
+      <EvolutionDialog evolution={item.evolution} open={evolutionOpen} onClose={() => setEvolutionOpen(false)} />
+    </PageFrame>
   );
 }
 
@@ -480,23 +483,3 @@ function HomeLink({ href, title, detail, tag }) {
   );
 }
 
-function Pager({ prev, next }) {
-  return (
-    <nav className="mt-12 flex justify-between gap-6 border-t border-line pt-6" aria-label="Lesson">
-      {prev ? (
-        <a href={hrefFor(prev)} className="min-w-0 no-underline">
-          <span className="block text-[13px] font-medium text-muted">Back</span>
-          <span className="mt-1 block truncate font-sans text-[15px] font-semibold text-ink">{prev.title}</span>
-        </a>
-      ) : (
-        <span />
-      )}
-      {next ? (
-        <a href={hrefFor(next)} className="min-w-0 text-right no-underline">
-          <span className="block text-[13px] font-medium text-accent">Next</span>
-          <span className="mt-1 block truncate font-sans text-[15px] font-semibold text-accent">{next.title}</span>
-        </a>
-      ) : null}
-    </nav>
-  );
-}

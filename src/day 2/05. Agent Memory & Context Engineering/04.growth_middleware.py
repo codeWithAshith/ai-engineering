@@ -10,12 +10,10 @@
 # | 4 | **Store** | Save facts to long-term memory | create_agent(..., store=...) |
 # | 5 | **Retrieve** | Pull only what you need | Tools with ToolRuntime.store.search() |
 #
-# Evolution of Context Growth Strategies:
-#   2022: Manual trimming in every agent → error-prone, inconsistent
-#   2023 Q1: Custom middleware per project → not reusable
-#   2023 Q3: LangChain middleware protocol introduced → composable
-#   2024–Present: Declarative middleware stack → trim + summarize + compact together
-#   Takeaway: Context management is now declarative configuration, not manual code.
+# Where this came from:
+#   trim_messages, summarization, and "delete old tool output" used to be code you wrote inside the loop.
+#   create_agent middleware (LangChain 1.0) is the hook list for that work: trim, summarize, clear tool results.
+#   The five names below are the order we use in class, not five products released in five quarters.
 #
 # Limitation overcome: Day 1 agents grow unbounded (trim by hand each call is fragile).
 # This lesson combines ALL 5 strategies into one production-ready order-support agent.
