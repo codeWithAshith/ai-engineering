@@ -4,6 +4,17 @@
 # Mark READ vs WRITE the same way as order tools.
 #
 # Example: order-support catalog — search products, update stock in SQLite.
+#
+# ```mermaid
+# flowchart TD
+#   agent -->|search| read[READ: search_products - SELECT]
+#   agent -->|update| write[WRITE: update_stock - UPDATE]
+#   read --> sqlite[(SQLite products)]
+#   write --> sqlite
+#   sqlite --> read
+#   sqlite --> write
+# ```
+
 
 import sqlite3
 

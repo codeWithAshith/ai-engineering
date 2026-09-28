@@ -1,4 +1,4 @@
-# 13 — get_state and update_state
+# 12 — get_state and update_state
 #
 # Concept: with a checkpointer you can inspect and edit a thread.
 #   get_state(config)            — read latest checkpoint

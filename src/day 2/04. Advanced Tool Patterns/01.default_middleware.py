@@ -1,4 +1,4 @@
-# 07 — Default middleware
+# 01 — Default middleware
 #
 # Concept: middleware wraps model/tool calls on create_agent.
 # Demo each built-in separately (same ORDERS domain):

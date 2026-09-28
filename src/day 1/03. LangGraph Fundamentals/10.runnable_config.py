@@ -1,4 +1,4 @@
-# 11 — RunnableConfig extras (recursion_limit, metadata)
+# 10 — RunnableConfig extras (recursion_limit, metadata)
 #
 # Concept: invoke/stream take a config dict. Besides configurable.thread_id,
 # common top-level keys are:

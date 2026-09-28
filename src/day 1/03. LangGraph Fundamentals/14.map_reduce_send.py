@@ -1,4 +1,4 @@
-# 15 — Map-reduce with Send
+# 14 — Map-reduce with Send
 #
 # Concept: fan-out with Send (one worker per item), then a reduce node joins results.
 # Annotated[..., add] merges worker updates; Send controls the parallel branches.

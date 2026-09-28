@@ -5,6 +5,17 @@
 #   WRITE — update_order_status (changes store state)
 #
 # Example: check ORD-2, then set ORD-2 to shipped.
+#
+# ```mermaid
+# flowchart LR
+#   user[User: status of ORD-2?] --> agent
+#   agent -->|safe| read[READ: lookup_order]
+#   read --> agent
+#   user2[User: set ORD-2 shipped] --> agent
+#   agent -->|risky| write[WRITE: update_order_status]
+#   write -->|changes DB| agent
+# ```
+
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent

@@ -1,4 +1,4 @@
-# 02 — Order-support agent without tools
+# 03 — Order-support agent without tools
 #
 # Concept: a chat graph with no tools cannot see live order data —
 # the model must guess or refuse.

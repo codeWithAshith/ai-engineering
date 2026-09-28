@@ -1,4 +1,4 @@
-# 12 — Durable checkpointers
+# 11 — Durable checkpointers
 #
 # Concept: SqliteSaver stores checkpoints on disk so a thread survives process restart
 # (same compile(checkpointer=...) API as MemorySaver).
