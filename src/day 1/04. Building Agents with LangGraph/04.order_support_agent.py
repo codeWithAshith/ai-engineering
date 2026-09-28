@@ -1,4 +1,4 @@
-# 03 — Order-support agent with tools
+# 04 — Order-support agent with tools
 #
 # Concept: bind lookup tools to a chatbot ↔ ToolNode loop so answers come from data.
 #

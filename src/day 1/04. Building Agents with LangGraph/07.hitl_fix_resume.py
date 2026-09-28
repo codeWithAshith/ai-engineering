@@ -1,4 +1,4 @@
-# 06 — Fix wrong order id while paused, then resume
+# 07 — Fix wrong order id while paused, then resume
 #
 # Use case: customer said "refund ORD-1" but meant ORD-2.
 # Same agent as 05 (interrupt_before tools). Desk sees pending tool call,

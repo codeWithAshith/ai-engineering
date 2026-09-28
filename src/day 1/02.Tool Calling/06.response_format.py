@@ -10,6 +10,15 @@
 #   this lesson  → typed reply via response_format (no tools in the same agent)
 #
 # Example: order-support status as OrderStatus for ORD-1.
+#
+# ```mermaid
+# flowchart LR
+#   user[User: status of ORD-1?] --> agent
+#   agent -->|system prompt has data| model[Model with response_format]
+#   model -->|JSON schema| pydantic[OrderStatus object]
+#   pydantic --> app[structured_response field]
+# ```
+
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent

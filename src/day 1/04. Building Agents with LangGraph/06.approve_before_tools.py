@@ -1,4 +1,4 @@
-# 05 — Approve tools before they run (interrupt_before)
+# 06 — Approve tools before they run (interrupt_before)
 #
 # Use case: a support desk must approve sensitive actions before tools execute.
 # Customer: "Cancel ORD-1." Agent plans cancel_order(ORD-1). Graph pauses.

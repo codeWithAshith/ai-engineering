@@ -38,7 +38,7 @@ few_shot = ChatPromptTemplate.from_messages(
             "You are a geography tutor. Answer in one short sentence about {topic}.\n\n"
             "Examples:\n"
             "Q: What is the capital of Germany?\n"
-            "A: Helloo,the capital of Germany is Berlin.\n"
+            "A: Hello, the capital of Germany is Berlin.\n"
             "Q: What is the capital of Spain?\n"
             "A: Helloo,the capital of Spain is Madrid."
         ),

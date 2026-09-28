@@ -1,4 +1,4 @@
-# 10 — Tool governance (RBAC)
+# 04 — Tool governance (RBAC)
 #
 # Concept: governance is enforced when a tool runs — not by building
 # a separate create_agent per role.

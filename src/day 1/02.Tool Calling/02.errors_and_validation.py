@@ -7,6 +7,20 @@
 # Returning an error keeps the agent running (no crash).
 #
 # Example: issue_refund on ORD-1 / ORD-999 with invalid amount or unknown id.
+#
+# ```mermaid
+# flowchart TD
+#   user[Customer: refund $999 ORD-1] --> agent
+#   agent -->|plan tool call| validate[Tool validation]
+#   validate -->|args invalid| error1[ERROR: amount > 500]
+#   validate -->|args valid| check[Check order exists]
+#   check -->|not found| error2[ERROR: order not found]
+#   check -->|found| success[Refund issued]
+#   error1 --> agent
+#   error2 --> agent
+#   success --> agent
+# ```
+
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent

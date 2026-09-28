@@ -4,6 +4,17 @@
 # never URLs or headers.
 #
 # Example: order support — lookup_order locally, fetch_tracking_note via HTTP.
+#
+# ```mermaid
+# flowchart TD
+#   agent -->|call| local[lookup_order - local DB]
+#   agent -->|call| api[fetch_tracking_note - HTTP API]
+#   api -->|GET jsonplaceholder.typicode.com| external[External Service]
+#   external --> api
+#   local --> agent
+#   api --> agent
+# ```
+
 
 import json
 import urllib.request

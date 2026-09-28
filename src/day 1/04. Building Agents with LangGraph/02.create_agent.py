@@ -1,4 +1,4 @@
-# 12 — create_agent (without tools)
+# 02 — create_agent (without tools)
 #
 # Concept: create_agent builds a small agent graph around a model.
 # It calls the model (and tools, when present) in a loop until it can stop.
