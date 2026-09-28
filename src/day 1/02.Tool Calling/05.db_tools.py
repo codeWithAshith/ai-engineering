@@ -1,9 +1,16 @@
-# 05 — Database tools
+# 05 — Database tools (SQL with safety)
 #
-# Concept: tools can run SQL. Use placeholders (?) — never format user text into SQL.
-# Mark READ vs WRITE the same way as order tools.
+# Concept: Tools can run SQL. Use placeholders (?) — never format user text into SQL.
+# Mark READ vs WRITE the same way as order tools (lesson 03).
 #
-# Example: order-support catalog — search products, update stock in SQLite.
+# Evolution of SQL Tools:
+#   2022: String interpolation f"SELECT * FROM products WHERE name='{user_input}'" → SQL injection!
+#   2023 Q1: Parameterized queries → safer but manual everywhere
+#   2023 Q3: @tool + SQL placeholders → standard pattern
+#   2024-Present: SQL tool governance → read-only by default (Day 2 Section 04)
+#   Takeaway: ALWAYS use placeholders (?). Never f-strings with user input.
+#
+# Example: Order-support catalog — search products (READ), update stock (WRITE)
 #
 # ```mermaid
 # flowchart TD
@@ -14,7 +21,6 @@
 #   sqlite --> read
 #   sqlite --> write
 # ```
-
 
 import sqlite3
 
@@ -38,58 +44,57 @@ conn.executemany(
         ("Monitor", 199.99, 5),
     ],
 )
-conn.commit()
 
 
 @tool
-def search_products(name_query: str) -> str:
-    """READ: Search products by name substring for support lookups."""
+def search_products(keyword: str) -> str:
+    """READ: Search products by name. SQL uses ? placeholder for safety."""
     rows = conn.execute(
-        "SELECT id, name, price, stock FROM products WHERE name LIKE ?",
-        (f"%{name_query}%",),
+        "SELECT name, price, stock FROM products WHERE name LIKE ?", (f"%{keyword}%",)
     ).fetchall()
     if not rows:
-        return "No products found"
-    return "\n".join(
-        f"{r['id']}: {r['name']} ${r['price']} (stock {r['stock']})" for r in rows
-    )
+        return f"No products found matching '{keyword}'"
+    return "\n".join(f"{r['name']}: ${r['price']}, stock {r['stock']}" for r in rows)
 
 
 @tool
-def update_stock(product_id: int, new_stock: int) -> str:
-    """WRITE: Update stock for a product id. Only when the user asks to change inventory."""
-    cur = conn.execute(
-        "UPDATE products SET stock = ? WHERE id = ?",
-        (new_stock, product_id),
+def update_stock(product_name: str, new_stock: int) -> str:
+    """WRITE: Update product stock. Only use when customer confirms."""
+    conn.execute(
+        "UPDATE products SET stock = ? WHERE name = ?", (new_stock, product_name)
     )
-    conn.commit()
-    if cur.rowcount == 0:
-        return f"No product with id {product_id}"
-    return f"Updated product {product_id} stock to {new_stock}"
+    return f"Updated {product_name} stock to {new_stock}"
 
 
 agent = create_agent(
     model="groq:openai/gpt-oss-20b",
     tools=[search_products, update_stock],
-    system_prompt=(
-        "You are order support with a product catalog. "
-        "Use search_products to find items. "
-        "Use update_stock only when asked to change inventory."
-    ),
+    system_prompt="You are catalog support. READ tools freely. WRITE tools need confirmation.",
 )
 
-for question in [
-    "Find products with Mouse in the name",
-    "Set stock of product id 1 to 20",
-]:
-    result = agent.invoke({"messages": [HumanMessage(content=question)]})
-    tools_used = [
-        c["name"]
-        for m in result["messages"]
-        if getattr(m, "tool_calls", None)
-        for c in m.tool_calls
-    ]
-    print(f"Q: {question}")
-    print(f"  tools: {tools_used}")
-    print(f"  answer: {result['messages'][-1].content}")
-    print("-" * 100)
+print("═" * 100)
+print("READ: Search products")
+print("═" * 100)
+r1 = agent.invoke({"messages": [HumanMessage(content="Do you have keyboards?")]})
+print(f"Q: Do you have keyboards?")
+print(f"A: {r1['messages'][-1].content}")
+print()
+print("EXAMPLE OUTPUT: Yes, we have Keyboard in stock: $49.99, 12 units available.")
+print()
+print("SQL executed: SELECT name, price, stock FROM products WHERE name LIKE '%keyboard%'")
+print("Safety: Used ? placeholder, not f-string!")
+print("-" * 100)
+
+print()
+print("═" * 100)
+print("WRITE: Update stock")
+print("═" * 100)
+r2 = agent.invoke({"messages": [HumanMessage(content="Set keyboard stock to 20.")]})
+print(f"Q: Set keyboard stock to 20.")
+print(f"A: {r2['messages'][-1].content}")
+print()
+print("EXAMPLE OUTPUT: I've updated the Keyboard stock to 20 units.")
+print()
+print("SQL executed: UPDATE products SET stock = ? WHERE name = ?")
+print("Parameters: (20, 'Keyboard')")
+print("-" * 100)
