@@ -21,13 +21,20 @@ wheels/
 .ruff_cache/
 __pycache__/
 
-# Local course content (keep on disk; publish day-by-day)
+# Local course content (GitHub: day 1, day 2, course-site only)
 src/**
 !src/.gitkeep
 !src/day 1/
 !src/day 1/**
 !src/day 2/
 !src/day 2/**
+!src/course-site/
+!src/course-site/**
+src/course-site/node_modules/
+src/course-site/dist/
+
+# Private Cursor automation and third-party skills — local only
+.cursor/
 
 # Lesson-generated artifacts
 **/_checkpoints.sqlite

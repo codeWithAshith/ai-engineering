@@ -1,35 +1,68 @@
 # 09 — Model parameters
 #
-# Concept: init_chat_model(..., **params) changes how the model generates text.
-# You still call model.invoke — only the settings differ.
+# You'll learn: the three sampling knobs, when to touch one, and why this course
+# almost always sets temperature and leaves the rest alone.
 #
-# Params we pass directly on this model (no model_kwargs):
+# The idea
+#   The model does not pick "the best word". It picks from a list of next tokens,
+#   each with a probability. These settings change that list — not the weights.
 #
-# | Param                | What it controls                                      |
-# |----------------------|-------------------------------------------------------|
-# | temperature          | Randomness / focus                                    |
-# | max_tokens           | Length cap                                            |
-# | stop                 | Halt on a string                                      |
-# | timeout / max_retries| Client reliability → lesson 10                        |
+# The three knobs people mix up
+#   temperature — how sharp the probabilities are.
+#     0 ≈ always take the top token (focused, repeatable).
+#     1 ≈ use the probabilities as-is (more variety).
+#     This is the one we use in class.
 #
-# Related ideas (often on other providers; not first-class here):
-#   top_p              — nucleus sampling (narrow the token set by probability mass)
-#   presence_penalty   — prefer new topics (penalize any token already seen)
-#   frequency_penalty  — cut repetition (penalize by how often a token repeated)
+#   top_p (nucleus) — only keep the smallest set of tokens whose probabilities
+#     add up to p. top_p=0.9 means "ignore the long tail of unlikely words".
+#     It is another way to cut randomness. You do not need it if temperature
+#     is already 0.
+#
+#   top_k — only keep the k most likely tokens, then sample. Common in local /
+#     Hugging Face models. Groq + init_chat_model here does not treat top_k as
+#     a first-class argument, so we do not pass it.
+#
+# Why use top_p at all?
+#   Use it when you want variety BUT you want to ban weird tail tokens.
+#   Creative copy, brainstorming. Not tool calls, not SQL, not JSON.
+#
+# What if you set all three?
+#   They stack: temperature reshapes the distribution, then top_k clips to k
+#   tokens, then top_p clips to probability mass. You can do it, but you now
+#   have three ways to make the model both boring and surprising, and you
+#   cannot tell which knob did what. If the answer looks wrong, you will not
+#   know what to turn.
+#
+# When to use all three
+#   Almost never in production agents. Maybe in a research sweep where you log
+#   every setting. For this course: pick one randomness knob.
+#
+# What is most common?
+#   Agents / tools / structured output: temperature=0 (or 0.1). Leave top_p and
+#   top_k unset. That is what we do from here on.
+#   Chatty prose: temperature 0.7–1.0 OR top_p around 0.9 — not both cranked.
 #   Prefer tuning temperature OR top_p, not both aggressively.
 #
-# Details:
+# Other params in this file
+#   max_tokens — hard length cap. Style knobs do not do this.
+#   stop — halt when this string appears.
 #
-#   temperature (0–2, often 0–1)
-#     0 ≈ deterministic / focused; higher ≈ more varied / creative.
+# Run:
+#   uv run python "src/day 1/01. Langchain Fundamentals/09.model_parameters.py"
 #
-#   max_tokens
-#     Hard cap on generated length (style params do not do this).
-#
-#   stop / stop_sequences
-#     Stop when this string appears (content-based; max_tokens is count-based).
-#
-# Example: same France capital question under different settings.
+# Example output (model wording changes; the four labels will match):
+#   temperature=0 (focused):
+#   Paris is the capital of France. ...
+#   ----------------------------------------------------------------------------------------------------
+#   temperature=1 (more varied):
+#   A slightly different France fact (or extra flourish).
+#   ----------------------------------------------------------------------------------------------------
+#   max_tokens=64 (length cap — may truncate):
+#   'Paris is ...'
+#   usage_metadata: {'output_tokens': 64, ...}
+#   ----------------------------------------------------------------------------------------------------
+#   stop=['Interesting'] (halt when that word would start):
+#   'Paris is the capital of France. '
 
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
