@@ -1,4 +1,4 @@
-# 09 — Persistence and checkpoints (MemorySaver + thread_id + checkpoint_id)
+# 10 — Persistence and checkpoints (MemorySaver + thread_id + checkpoint_id)
 #
 # Concept:
 #   Checkpoint   — snapshot of state after a step

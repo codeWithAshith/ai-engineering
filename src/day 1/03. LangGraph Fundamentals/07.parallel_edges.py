@@ -1,4 +1,4 @@
-# 06c — Parallel fixed edges
+# 07 — Parallel fixed edges
 #
 # Concept: multiple edges from START or from one node run nodes in parallel.
 #   Linear:   START → A → B → END
