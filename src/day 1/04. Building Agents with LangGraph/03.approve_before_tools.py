@@ -88,6 +88,7 @@ print(" next node:", app.get_state(cfg).next)
 print("-" * 100)
 
 # Human approves → tools run → final reply
+# None means “continue as planned.”
 done = app.invoke(None, config=cfg)
 print("after approval:", done["messages"][-1].content)
 print("ORDERS now:", ORDERS)
