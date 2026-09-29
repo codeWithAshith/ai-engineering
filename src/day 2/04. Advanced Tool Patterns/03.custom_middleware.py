@@ -1,4 +1,4 @@
-# 02 — Custom middleware
+# 03 — Custom middleware
 #
 # Concept: @wrap_tool_call intercepts each tool call.
 #   (request, handler) → result = handler(request) → return result

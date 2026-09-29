@@ -63,7 +63,6 @@ print()
 
 ORDERS = {"ORD-1": "shipped", "ORD-2": "pending", "ORD-3": "delivered"}
 
-
 @tool
 def lookup_order(order_id: str) -> str:
     """
@@ -75,7 +74,6 @@ def lookup_order(order_id: str) -> str:
     - "Has ORD-3 been delivered?"
     """
     return ORDERS.get(order_id, f"Order {order_id} not found")
-
 
 print("Component 1: Structured tools (Day 1)")
 print(f"  • ORDERS database: {len(ORDERS)} orders")
@@ -101,7 +99,6 @@ policy_retriever = InMemoryVectorStore.from_documents(
     chunks, embedding=embeddings
 ).as_retriever(search_kwargs={"k": 2})
 
-
 @tool
 def search_policies(question: str) -> str:
     """
@@ -125,7 +122,6 @@ def search_policies(question: str) -> str:
     
     return "\n\n".join(result)
 
-
 print("Component 2: RAG over policy documents (Day 2 Sections 06/07)")
 print(f"  • Indexed {len(chunks)} policy chunks")
 print(f"  • search_policies tool: semantic search over refund/shipping/contact docs")
@@ -136,7 +132,6 @@ print()
 # ════════════════════════════════════════════════════════════════════════════
 
 store = InMemoryStore()
-
 
 @tool
 def save_pref(key: str, value: str, runtime: ToolRuntime) -> str:
@@ -151,7 +146,6 @@ def save_pref(key: str, value: str, runtime: ToolRuntime) -> str:
     runtime.store.put(("customers", "cust-42"), key, {"value": value})
     return f"Saved {key}={value}"
 
-
 @tool
 def get_prefs(runtime: ToolRuntime) -> str:
     """
@@ -165,7 +159,6 @@ def get_prefs(runtime: ToolRuntime) -> str:
     if not items:
         return "No preferences saved."
     return ", ".join(f"{i.key}={i.value['value']}" for i in items)
-
 
 print("Component 3: Long-term memory (Day 2 Section 05)")
 print("  • InMemoryStore for customer preferences")
@@ -272,40 +265,3 @@ r4 = agent.invoke(
     },
     config=cfg,
 )
-print(f"  Q: Combined query (preference + order + policy)")
-print(f"  A: {r4['messages'][-1].content}")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# PRODUCTION PATTERNS
-# ════════════════════════════════════════════════════════════════════════════
-
-print("═" * 100)
-print("PRODUCTION PATTERNS")
-print("═" * 100)
-print()
-print("PATTERN 1: Tool design by data type")
-print("  • Structured data (ORDERS, inventory) → fast DB tools")
-print("  • Unstructured docs (policies, FAQs) → RAG tools")
-print("  • User prefs (contact method, shipping address) → Store tools")
-print()
-print("PATTERN 2: Let agent decide")
-print("  • Don't hardcode when to use each tool")
-print("  • Agent picks based on question type")
-print("  • System prompt guides tool selection")
-print()
-print("PATTERN 3: Context management")
-print("  • Trim old messages (Layer 1)")
-print("  • Compact tool results (Layer 2)")
-print("  • Summarize long threads (Layer 3)")
-print("  • Store facts long-term (Layer 4)")
-print("  • Retrieve on-demand (Layer 5)")
-print()
-print("PATTERN 4: Citations & grounding")
-print("  • RAG tools return source metadata")
-print("  • Agent cites policies in responses")
-print("  • Customers can verify claims")
-print()
-print("NEXT LESSON:")
-print("  09. rag_evaluation.py → Test precision, recall, answer quality")
-print("-" * 100)

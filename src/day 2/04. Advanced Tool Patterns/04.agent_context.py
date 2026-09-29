@@ -1,4 +1,4 @@
-# 03 — Agent context
+# 04 — Agent context
 #
 # Concept: context is per-invoke data about the caller (role, user_id, …).
 #   context_schema — type describing that data

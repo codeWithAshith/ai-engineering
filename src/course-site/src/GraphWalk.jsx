@@ -67,7 +67,18 @@ const DIAGRAMS = {
   },
   routing: {
     kicker: "04 · Routing nodes",
-    caption: "classify writes intent into state. The edge only reads that field.",
+    caption: "classify writes intent into state. The edge only reads that field. The table is how you pick the pattern.",
+    compareTable: {
+      title: "When to use which",
+      headers: ["Metric", "Pure conditional edge", "Routing node + thin edge"],
+      rows: [
+        ["Where logic lives", "Inside the edge function (route)", "Inside a worker node (classify)"],
+        ["State footprint", "No change. State is only read, not updated.", "State is updated. Saves the decision (intent) to state."],
+        ["Auditability & logging", "Harder. The decision disappears once the transition occurs.", "Easy. The routing choice remains in the state history."],
+        ["Downstream reuse", "Low. Later nodes cannot see why this path was taken.", "High. Downstream nodes can read state[\"intent\"] to alter their behavior."],
+        ["Edge complexity", "Thick. Contains the core business or LLM classification logic.", "Thin. Simply reads a pre-computed value (return state[\"intent\"])."],
+      ],
+    },
     direction: "TD",
     layers: [["START"], ["classify"], ["order", "product", "other"], ["END"]],
     edges: [
@@ -118,10 +129,54 @@ const DIAGRAMS = {
     ],
   },
   reducers: { kind: "reducers" },
+  toolnode: {
+    kicker: "06 · ToolNode",
+    caption: "ToolNode is the executor you wrote by hand. It runs tool_calls. This is one round — not the agent loop.",
+    compareTable: {
+      title: "This lesson vs the next",
+      highlight: 1,
+      headers: ["Metric", "Tool node pattern", "Agent loop pattern"],
+      rows: [
+        ["Control flow", "Deterministic. The graph dictates when a tool runs based on pre-defined edges.", "Dynamic. The LLM decides if, when, and which tools to call sequentially."],
+        ["LLM responsibility", "Low. The LLM only generates the arguments; the graph executes it.", "High. The LLM must reason, call tools, inspect outputs, and decide to stop."],
+        ["State mutation", "Linear. Updates state attributes sequentially.", "Cyclic. Appends new tool logs to a message history array iteratively."],
+        ["Best used for", "Structured, predictable workflows (extract text, then query the database).", "Open-ended problem solving (research this topic, then summarize)."],
+      ],
+    },
+    direction: "LR",
+    layers: [["START"], ["chatbot"], ["tools"], ["END"]],
+    edges: [
+      { from: "START", to: "chatbot" },
+      { from: "chatbot", to: "tools" },
+      { from: "tools", to: "END" },
+    ],
+    meanings: {
+      START: "Status of ORD-1?",
+      chatbot: "emits tool_calls",
+      tools: "ToolNode · runs lookup_order",
+      END: "ToolMessage on the ticket",
+    },
+    walk: [
+      { nodes: ["START"], edges: [], note: "Tool Calling: bind_tools returned a call. You ran lookup_order.invoke and built a ToolMessage. That glue is a desk.", ticket: { question: "Status of ORD-1?" } },
+      { nodes: ["START", "chatbot"], edges: [{ from: "START", to: "chatbot" }], note: "chatbot is still just the model. It writes tool_calls. It does not run Python.", ticket: { tool_calls: "lookup_order(ORD-1)" } },
+      { nodes: ["START", "chatbot", "tools"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }], note: "ToolNode reads those calls, runs lookup_order, appends ToolMessage. create_agent uses this same node.", ticket: { tool: "shipped" } },
+      { nodes: ["START", "chatbot", "tools", "END"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }, { from: "tools", to: "END" }], note: "END. No edge back to chatbot. Next lesson closes that loop: chatbot ↔ ToolNode, tools_condition as the stop.", ticket: { next: "agent loops" } },
+    ],
+  },
   loop: { kind: "loop" },
   parallel: {
-    kicker: "07 · Parallel fixed edges",
-    caption: "Linear is START → A → B. Parallel is two edges from START: A and B run together, then merge waits for both.",
+    kicker: "08 · Parallel fixed edges",
+    caption: "Merge waits. The fast branch does not start merge early. The slow one does not get skipped.",
+    compareTable: {
+      title: "Both edges into merge = a join",
+      highlight: 1,
+      headers: ["If this happens", "What LangGraph does"],
+      rows: [
+        ["normalize finishes first", "merge does not run. check_tier is still going."],
+        ["check_tier finishes first", "merge does not run. normalize is still going."],
+        ["both have finished", "merge runs once. The slow branch was not skipped."],
+      ],
+    },
     direction: "TD",
     layers: [["START"], ["normalize", "check_tier"], ["merge"], ["END"]],
     edges: [
@@ -138,17 +193,19 @@ const DIAGRAMS = {
       merge: "waits for both",
       END: "exit",
     },
+    idleNote: "Both leave START together. merge is a join — it waits. Press Play.",
     walk: [
-      { nodes: ["START"], edges: [], note: "Definition: two add_edge from START. Both nodes run at the same time. Not A then B, and not Send (one worker per list item).", ticket: { order_id: " ord-1 " } },
-      { nodes: ["START", "normalize", "check_tier"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }], note: "Branches do not see each other. check_tier still uses the raw order_id. Both must finish before merge.", ticket: { normalized_id: "ORD-1", tier: "VIP" } },
-      { nodes: ["START", "normalize", "check_tier", "merge"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }, { from: "normalize", to: "merge" }, { from: "check_tier", to: "merge" }], note: "merge waits, then writes the answer from both results. notes concatenate with Annotated[list, add].", ticket: { answer: "🌟 VIP | Order ORD-1 → shipped" } },
-      { nodes: ["START", "normalize", "check_tier", "merge", "END"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }, { from: "normalize", to: "merge" }, { from: "check_tier", to: "merge" }, { from: "merge", to: "END" }], note: "Use this for two independent checks. Next lesson's Send is for a list of order ids at runtime.", ticket: { answer: "🌟 VIP | Order ORD-1 → shipped" } },
+      { nodes: ["START"], edges: [], note: "Two add_edge from START. normalize and check_tier leave at the same time. Not A then B, and not Send." },
+      { nodes: ["START", "normalize", "check_tier"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }], note: "Both have an edge into merge. Branches do not see each other's writes. check_tier still uses the raw order_id." },
+      { nodes: ["START", "normalize", "check_tier"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }], note: "Suppose normalize finishes first. merge does not start early. The slow branch is not skipped." },
+      { nodes: ["START", "normalize", "check_tier", "merge"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }, { from: "normalize", to: "merge" }, { from: "check_tier", to: "merge" }], note: "LangGraph treats the two edges into merge as a join: merge runs once, after both have finished." },
+      { nodes: ["START", "normalize", "check_tier", "merge", "END"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }, { from: "normalize", to: "merge" }, { from: "check_tier", to: "merge" }, { from: "merge", to: "END" }], note: "notes concatenate with Annotated[list, add]. Next lesson's Send is one worker per list item at runtime." },
     ],
   },
   streaming: { kind: "streaming" },
   thinking: {
-    kicker: "09 · Thinking stream",
-    caption: "Same agent loop mermaid as lesson 06. stream_mode is a list, so each event is (mode, data).",
+    kicker: "10 · Thinking stream",
+    caption: "Way 1 labels graph steps. Way 2 is the model's thinking mode: reasoning_content, then the reply.",
     direction: "TD",
     layers: [["START"], ["chatbot"], ["tools", "END"]],
     edges: [
@@ -164,18 +221,19 @@ const DIAGRAMS = {
       END: "typed answer",
     },
     dashboard: [
-      { name: "updates", event: "{node_name: partial update}", when: "Thinking room: every node reports — chatbot, then tools" },
-      { name: "messages", event: "(token_chunk, meta) from the LLM", when: "The final reply you send — typed answer tokens" },
+      { name: "updates", event: "{node_name: partial update}", when: "Way 1: which node ran — chatbot, then tools" },
+      { name: "messages", event: "(token_chunk, meta)", when: "Way 1: last AI reply, typed" },
+      { name: "reasoning_format='parsed'", event: "reasoning_content, then content", when: "Way 2: model scratchpad typing, then the same last AI reply" },
     ],
     walk: [
       { nodes: ["START"], edges: [], note: "stream_mode=['updates', 'messages']. One mode alone cannot show a tool spinner and live tokens.", ticket: { stream: "for mode, event in app.stream(..., stream_mode=['updates', 'messages'])" } },
-      { nodes: ["START", "chatbot"], edges: [{ from: "START", to: "chatbot" }], note: "updates fires first: which node just ran. chatbot may emit tool_calls for ORD-1.", ticket: { print: "[thinking] step=chatbot" } },
-      { nodes: ["START", "chatbot", "tools"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }], note: "updates: tools ran lookup_order. A support UI can show a spinner here.", ticket: { print: "[thinking] step=tools" } },
-      { nodes: ["START", "chatbot", "tools", "END"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }, { from: "chatbot", to: "END" }], note: "messages: tokens of the answer. Still no thread memory — that is persistence.", ticket: { tokens: "The status of ORD-1 is shipped" } },
+      { nodes: ["START", "chatbot"], edges: [{ from: "START", to: "chatbot" }], note: "updates fires first: which node just ran. chatbot may emit tool_calls for ORD-1.", ticket: { print: "[step] chatbot" } },
+      { nodes: ["START", "chatbot", "tools"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }], note: "updates: tools ran lookup_order. A support UI can show a spinner here.", ticket: { print: "[step] tools" } },
+      { nodes: ["START", "chatbot", "tools", "END"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }, { from: "chatbot", to: "END" }], note: "messages: last AI reply, typed. Way 2 is different: reasoning_format='parsed' types a scratchpad, then that same reply. It does not name the tools node.", ticket: { tokens: "The status of ORD-1 is shipped" } },
     ],
   },
   persistence: {
-    kicker: "10 · Persistence",
+    kicker: "11 · Persistence",
     caption: "MemorySaver is already the RAM saver. The lesson is the config you pass every invoke, and the order of frames in that thread.",
     direction: "LR",
     layers: [["START"], ["chatbot"], ["END"]],
@@ -235,7 +293,7 @@ const DIAGRAMS = {
     ],
   },
   config: {
-    kicker: "11 · RunnableConfig",
+    kicker: "12 · RunnableConfig",
     caption: "Same config dict you already pass. No config_id. Extra keys ride along this invoke: recursion_limit and metadata.",
     direction: "TD",
     layers: [["START"], ["chatbot"], ["tools", "END"]],
@@ -273,7 +331,7 @@ const DIAGRAMS = {
     ],
   },
   durable: {
-    kicker: "12 · Durable checkpointers",
+    kicker: "13 · Durable checkpointers",
     caption: "Same compile(checkpointer=...) call as MemorySaver. SqliteSaver writes to disk, so a process restart does not wipe the thread.",
     direction: "LR",
     layers: [["START"], ["chatbot"], ["END"]],
@@ -299,7 +357,7 @@ const DIAGRAMS = {
     ],
   },
   state: {
-    kicker: "13 · get_state / update_state",
+    kicker: "14 · get_state / update_state",
     caption: "A human reads get_state, writes update_state, then invoke(None) resumes from .next. Persistence cannot do this alone. Not interrupt() yet.",
     direction: "LR",
     layers: [["START"], ["enrich"], ["END"]],
@@ -337,7 +395,7 @@ const DIAGRAMS = {
   },
   subgraph: { kind: "subgraph" },
   mapreduce: {
-    kicker: "15 · Map-reduce with Send",
+    kicker: "16 · Map-reduce with Send",
     caption: "Compiled mermaid has two nodes: work and reduce. plan is the routing function on START, not a node.",
     direction: "TD",
     layers: [["START"], ["work"], ["reduce"], ["END"]],
@@ -494,7 +552,7 @@ const DIAGRAMS = {
     ],
   },
   debug: {
-    kicker: "06 · Debugging agents",
+    kicker: "01 · Debugging agents",
     caption: "Four failures. Four places to look. The graph is a glass box.",
     direction: "TD",
     layers: [["START"], ["chatbot"], ["tools", "END"]],
@@ -1039,209 +1097,176 @@ function StateReducers({ caseIdx, setCaseIdx }) {
   );
 }
 
-const LOOP_CASES = [
+const WHY_ELEMENTARY = {
+  direction: "LR",
+  layers: [["START"], ["P"], ["END"]],
+  edges: [
+    { from: "START", to: "P" },
+    { from: "P", to: "END" },
+  ],
+  meanings: {
+    START: "always begin here",
+    P: "prompt the LLM",
+    END: "always finish here",
+  },
+};
+
+const WHY_GRAPH = {
+  direction: "TD",
+  layers: [["START"], ["normalize"], ["escalate", "normal"], ["END"]],
+  edges: [
+    { from: "START", to: "normalize" },
+    { from: "normalize", to: "escalate", label: "cancelled" },
+    { from: "normalize", to: "normal", label: "else" },
+    { from: "escalate", to: "END" },
+    { from: "normal", to: "END" },
+  ],
+  meanings: {
+    START: "ticket in",
+    normalize: "lookup ORDERS",
+    escalate: "specialist desk",
+    normal: "normal reply",
+    END: "always finish here",
+  },
+};
+
+const WHY_APPROACHES = [
   {
-    name: "1 · basic loop",
-    kicker: "06 · Agent loops",
-    caption: "Part 1 is create_agent with the lid off. Same cycle: chatbot ↔ ToolNode until the model stops.",
-    direction: "TD",
-    layers: [["START"], ["chatbot"], ["tools", "END"]],
-    edges: [
-      { from: "START", to: "chatbot" },
-      { from: "chatbot", to: "tools", label: "tool_calls" },
-      { from: "chatbot", to: "END", label: "done" },
-    ],
-    backEdges: [{ from: "chatbot", to: "tools", label: "result" }],
-    meanings: {
-      START: "Status of ORD-1?",
-      chatbot: "tools_condition",
-      tools: "lookup_order",
-      END: "reply",
-    },
+    name: "LLM",
+    n: "1",
+    verdict: "fails",
+    line: "one invoke",
+    why: "System prompt mentions escalation. The model might not. You have no path to force.",
     walk: [
-      { nodes: ["START"], edges: [], note: "Tool Calling already ran this: create_agent loops model → tool → result → model. That function compiles this graph behind the scenes. You are looking at the same cycle." },
-      { nodes: ["START", "chatbot"], edges: [{ from: "START", to: "chatbot" }], note: "chatbot may emit tool_calls. tools_condition is the built-in stop create_agent uses: continue if tool_calls exist, else END." },
-      { nodes: ["START", "chatbot", "tools"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }], note: "lookup_order(ORD-1) → shipped. Result goes back to chatbot. Same back-and-forth as create_agent.", ticket: { order: "ORD-1", tool: "lookup_order" } },
-      { nodes: ["START", "chatbot", "tools", "END"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }, { from: "chatbot", to: "END" }], note: "No more tool_calls → END. Parts 2 and 3 add desks create_agent does not expose. recursion_limit=10 still caps a runaway cycle." },
+      { note: "Status of ORD-3? One invoke. Known orders live only in the prompt." },
+      { note: "Problem: the model might escalate cancelled. It might not. There is no escalate node." },
     ],
   },
   {
-    name: "2 · break after 3",
-    kicker: "06 · Agent loops",
-    caption: "Part 2: should_continue() on chatbot. Stop if no tool_calls, or if attempts ≥ 3.",
-    direction: "TD",
-    layers: [["START"], ["chatbot"], ["tools", "give_up", "END"]],
-    edges: [
-      { from: "START", to: "chatbot" },
-      { from: "chatbot", to: "tools", label: "attempts < 3" },
-      { from: "chatbot", to: "give_up", label: "attempts ≥ 3" },
-      { from: "chatbot", to: "END", label: "no tool_calls" },
-      { from: "give_up", to: "END" },
-    ],
-    backEdges: [{ from: "chatbot", to: "tools", label: "result" }],
-    meanings: {
-      START: "entry",
-      chatbot: "attempts += 1",
-      tools: "lookup",
-      give_up: "sorry, 3 tries",
-      END: "exit",
-    },
+    name: "Chain",
+    n: "2",
+    verdict: "fails",
+    line: "prompt | model | parser",
+    why: "You look up ORD-3 yourself. The chain is A → B → C. It cannot pick a desk.",
     walk: [
-      { nodes: ["START"], edges: [], note: "tools_condition cannot cap retries. chatbot_with_counter writes attempts. should_continue reads that field.", ticket: { attempts: 0 } },
-      { nodes: ["START", "chatbot", "tools"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }], note: "Has tool_calls and attempts=1 < 3 → tools. Then tools → chatbot again.", ticket: { attempts: 1 } },
-      { nodes: ["START", "chatbot", "tools"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }], note: "Still calling tools. attempts=2. Budget-aware agents stop here next time.", ticket: { attempts: 2 } },
-      { nodes: ["START", "chatbot", "give_up"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "give_up" }], note: "attempts ≥ 3 → give_up, not tools. The branch is on chatbot, not on the tools node.", ticket: { attempts: 3 } },
-      { nodes: ["START", "chatbot", "give_up", "END"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "give_up" }, { from: "give_up", to: "END" }], note: "give_up writes the sorry message, then END. Use this to prevent infinite loops." },
+      { note: "You look up ORD-3 first. A chain cannot decide that — lookup sits outside." },
+      { note: "Problem: prompt | model | parser always runs the same line. No escalate vs normal." },
     ],
   },
   {
-    name: "3 · error + fallback",
-    kicker: "06 · Agent loops",
-    caption: "Part 3: tools_condition still leaves chatbot. After tools, route_after_tools retries or falls back.",
-    direction: "TD",
-    layers: [["START"], ["chatbot"], ["tools"], ["fallback"], ["END"]],
-    edges: [
-      { from: "START", to: "chatbot" },
-      { from: "chatbot", to: "tools", label: "tool_calls" },
-      { from: "tools", to: "fallback", label: "retry limit" },
-      { from: "fallback", to: "END" },
-    ],
-    backEdges: [{ from: "chatbot", to: "tools", label: "success" }],
-    side: "error and retries < 2",
-    sideNote: "route_after_tools sends the ticket back to tools. After 2 failures → fallback.",
-    meanings: {
-      START: "Status of ORD-1?",
-      chatbot: "tools_condition",
-      tools: "flaky_lookup",
-      END: "clean reply",
-      fallback: "system unavailable",
-    },
+    name: "LangGraph",
+    n: "3",
+    verdict: "solves",
+    line: "normalize → route",
+    why: "route() reads status. Cancelled goes to escalate. Else goes to normal.",
+  },
+];
+
+const WHY_TICKETS = [
+  {
+    name: "ORD-3 cancelled",
     walk: [
-      { nodes: ["START", "chatbot", "tools"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }], note: "flaky_lookup raises ~50% of the time. safe_tools catches it and writes error + retries.", ticket: { error: "API connection failed", retries: 1 } },
-      { nodes: ["START", "chatbot", "tools"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }], note: "retries < 2 → tools again. Same node, another attempt. Not give_up from Part 2.", ticket: { error: "API connection failed", retries: 1 } },
-      { nodes: ["START", "chatbot", "tools", "fallback"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }, { from: "tools", to: "fallback" }], note: "retries hit 2. route_after_tools returns fallback, not chatbot.", ticket: { retries: 2 } },
-      { nodes: ["START", "chatbot", "tools", "fallback", "END"], edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "tools" }, { from: "tools", to: "fallback" }, { from: "fallback", to: "END" }], note: "fallback tells the customer the system is unavailable. Production loops retry, then have a desk that is not another tool call." },
+      { nodes: ["START"], edges: [], note: "Same question: Status of ORD-3? TicketState is empty except order_id." },
+      { nodes: ["START", "normalize"], edges: [{ from: "START", to: "normalize" }], note: "normalize strips/uppers the id and looks up ORDERS. status = cancelled." },
+      { nodes: ["START", "normalize", "escalate"], edges: [{ from: "START", to: "normalize" }, { from: "normalize", to: "escalate" }], note: "route() returns escalate. normal stays on the graph; it does not run." },
+      { nodes: ["START", "normalize", "escalate", "END"], edges: [{ from: "START", to: "normalize" }, { from: "normalize", to: "escalate" }, { from: "escalate", to: "END" }], note: "Print: Order ORD-3 is cancelled — escalating to specialist team." },
+    ],
+  },
+  {
+    name: "ORD-1 shipped",
+    walk: [
+      { nodes: ["START"], edges: [], note: "Same graph, other ticket: ORD-1. The file runs both." },
+      { nodes: ["START", "normalize"], edges: [{ from: "START", to: "normalize" }], note: "normalize looks up ORDERS. status = shipped." },
+      { nodes: ["START", "normalize", "normal"], edges: [{ from: "START", to: "normalize" }, { from: "normalize", to: "normal" }], note: "route() returns normal. escalate does not run." },
+      { nodes: ["START", "normalize", "normal", "END"], edges: [{ from: "START", to: "normalize" }, { from: "normalize", to: "normal" }, { from: "normal", to: "END" }], note: "Print: Order ORD-1 status: shipped. Cancelled → escalate, shipped → normal." },
     ],
   },
 ];
 
-function AgentLoop({ caseIdx, setCaseIdx }) {
-  const spec = LOOP_CASES[caseIdx];
-  const { step, setStep, playing, setPlaying, beat } = useWalk(spec.walk, `loop-${caseIdx}`);
+function WhyLangGraph() {
+  const [approach, setApproach] = useState(2);
+  const [ticket, setTicket] = useState(0);
+  const place = WHY_APPROACHES[approach];
+  const walk = approach < 2 ? place.walk : WHY_TICKETS[ticket].walk;
+  const { step, setStep, playing, setPlaying, beat } = useWalk(walk, `why-${approach}-${ticket}`);
+  const solves = place.verdict === "solves";
+
   return (
     <div className="mb-6 rounded-2xl border border-line bg-slate-950 p-4 text-white shadow-sm sm:p-5">
-      <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">{spec.kicker}</p>
-      <p className="mt-1 mb-4 font-serif text-lg text-slate-200">{spec.caption}</p>
-      <div className="mb-3 flex flex-wrap gap-2">
-        {LOOP_CASES.map((c, i) => (
-          <button
-            key={c.name}
-            type="button"
-            onClick={() => setCaseIdx(i)}
-            className={`cursor-pointer rounded-lg border px-3 py-1.5 font-sans text-xs font-semibold transition-all ${
-              i === caseIdx
-                ? "border-teal-400 bg-teal-400 text-slate-950"
-                : "border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            {c.name}
-          </button>
-        ))}
-      </div>
+      <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">01 · Why LangGraph</p>
+      <p className="mt-1 mb-4 font-serif text-lg text-slate-200">
+        Every process is a graph. START, then whatever you put in the middle, then END.
+      </p>
       <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-4">
-        <FlowChart spec={spec} activeNodes={beat?.nodes} activeEdges={beat?.edges} />
+        <p className="m-0 mb-3 font-mono text-[10px] font-bold uppercase tracking-wider text-amber-200">Elementary · what we build first</p>
+        <FlowChart spec={WHY_ELEMENTARY} />
+      </div>
+      <p className="mt-4 mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500">Same ORD-3 · three approaches</p>
+      <div className="mb-3 grid gap-2 sm:grid-cols-3">
+        {WHY_APPROACHES.map((item, i) => {
+          const on = i === approach;
+          return (
+            <button
+              key={item.name}
+              type="button"
+              onClick={() => setApproach(i)}
+              className={`cursor-pointer rounded-xl border p-3 text-left transition-all ${
+                on ? "border-teal-400 bg-teal-950/40 ring-1 ring-teal-400/30" : "border-slate-700 bg-slate-900/80 hover:bg-slate-800"
+              }`}
+            >
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <p className={`m-0 font-mono text-xs font-bold ${on ? "text-teal-200" : "text-slate-300"}`}>
+                  {item.n} · {item.name}
+                </p>
+                <p className={`m-0 font-mono text-[10px] uppercase tracking-wider ${item.verdict === "solves" ? "text-amber-200" : "text-slate-500"}`}>
+                  {item.verdict}
+                </p>
+              </div>
+              <p className="m-0 font-mono text-[11px] text-slate-300">{item.line}</p>
+              <p className="m-0 mt-2 font-serif text-[12px] text-slate-500">{item.why}</p>
+            </button>
+          );
+        })}
+      </div>
+      {solves ? (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {WHY_TICKETS.map((item, i) => (
+            <button
+              key={item.name}
+              type="button"
+              onClick={() => setTicket(i)}
+              className={`cursor-pointer rounded-lg border px-3 py-1.5 font-sans text-xs font-semibold transition-all ${
+                i === ticket
+                  ? "border-teal-400 bg-teal-400 text-slate-950"
+                  : "border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              {item.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-4">
+        {solves ? (
+          <FlowChart spec={WHY_GRAPH} activeNodes={beat?.nodes} activeEdges={beat?.edges} />
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-2">
+            <MiniChain steps={approach === 0 ? ["prompt", "hope"] : ["lookup (you)", "prompt", "model", "parser"]} />
+            <p className="m-0 font-serif text-sm text-slate-400">{place.why}</p>
+          </div>
+        )}
         <WalkBar
-          walk={spec.walk}
+          walk={walk}
           step={step}
           setStep={setStep}
           playing={playing}
           setPlaying={setPlaying}
-          idleNote="Press Play on each part. The three graphs in the file are not the same picture."
+          idleNote={
+            solves
+              ? "How LangGraph handles it: route() reads status. Press Play. Switch ORD-1 for the other desk."
+              : `${place.name} cannot branch. Press Play, then open LangGraph.`
+          }
         />
-      </div>
-    </div>
-  );
-}
-
-function WhyLangGraph() {
-  return (
-    <div className="mb-6 rounded-2xl border border-line bg-slate-950 p-4 text-white shadow-sm sm:p-5">
-      <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">01 · Why LangGraph</p>
-      <p className="mt-1 mb-5 font-serif text-lg text-slate-200">
-        A chain is linear — A → B → C → stop. LangGraph is for when a ticket needs more than a straight line.
-      </p>
-      <div className="grid gap-3 lg:grid-cols-2">
-        <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4">
-          <p className="m-0 mb-3 font-mono text-[11px] font-bold uppercase tracking-wider text-slate-400">Chain</p>
-          <div className="flex flex-col items-center py-2">
-            {["A", "B", "C", "stop"].map((name, i, all) => (
-              <div key={name} className="flex flex-col items-center">
-                <div className="rounded-lg border border-slate-500 bg-slate-800 px-3 py-2 font-mono text-xs font-semibold text-slate-200">
-                  {name}
-                </div>
-                {i < all.length - 1 ? <div className="h-6 w-px bg-slate-500" /> : null}
-              </div>
-            ))}
-          </div>
-          <p className="m-0 text-center font-serif text-sm text-slate-400">normalize → lookup → reply → stop. Cannot go back.</p>
-        </div>
-        <div className="rounded-xl border border-teal-800/80 bg-slate-900/80 p-4">
-          <p className="m-0 mb-3 font-mono text-[11px] font-bold uppercase tracking-wider text-teal-300">Graph</p>
-          <div className="flex flex-col items-center py-1">
-            <NodeBox name="START" on meaning="entry" />
-            <div className="h-5 w-px bg-teal-400" />
-            <NodeBox name="node" on meaning="reads / writes the ticket" />
-            <div className="flex w-full max-w-xs flex-col items-center">
-              <div className="h-5 w-px bg-teal-400" />
-              <TBar count={2} />
-              <div className="flex w-full">
-                <div className="flex flex-1 flex-col items-center">
-                  <div className="h-5 w-px bg-teal-400" />
-                  <span className="mb-1 rounded bg-teal-400/20 px-1.5 py-0.5 font-mono text-[10px] text-teal-200">branch</span>
-                </div>
-                <div className="flex flex-1 flex-col items-center">
-                  <div className="h-5 w-px bg-teal-400" />
-                  <span className="mb-1 rounded bg-teal-400/20 px-1.5 py-0.5 font-mono text-[10px] text-teal-200">branch</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex w-full max-w-xs">
-              <div className="flex flex-1 justify-center">
-                <NodeBox name="left" on meaning="one desk" />
-              </div>
-              <div className="flex flex-1 justify-center">
-                <NodeBox name="right" on meaning="other desk" />
-              </div>
-            </div>
-            <div className="flex w-full max-w-xs flex-col items-center">
-              <div className="flex w-full">
-                <div className="flex flex-1 flex-col items-center">
-                  <div className="h-5 w-px bg-teal-400" />
-                </div>
-                <div className="flex flex-1 flex-col items-center">
-                  <div className="h-5 w-px bg-teal-400" />
-                </div>
-              </div>
-              <TBar count={2} />
-              <div className="h-5 w-px bg-teal-400" />
-            </div>
-            <NodeBox name="END" on meaning="exit" />
-          </div>
-        </div>
-      </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3">
-          <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-wider text-teal-300">Cycles</p>
-          <p className="m-0 mt-1 font-serif text-sm text-slate-300">Go back. Retry lookup. Agent ↔ tools.</p>
-        </div>
-        <div className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3">
-          <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-wider text-teal-300">Branching</p>
-          <p className="m-0 mt-1 font-serif text-sm text-slate-300">Pick the next desk from ticket state.</p>
-        </div>
-        <div className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-3">
-          <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-wider text-teal-300">Shared state</p>
-          <p className="m-0 mt-1 font-serif text-sm text-slate-300">Many nodes read and write the same ticket fields.</p>
-        </div>
       </div>
     </div>
   );
@@ -1255,110 +1280,116 @@ const STREAM_GRAPH = {
     { from: "chatbot", to: "END" },
   ],
   meanings: {
-    START: "input message",
-    chatbot: "model writes",
+    START: "the question",
+    chatbot: "writes one sentence",
     END: "finished ticket",
   },
 };
+
+const STREAM_QUESTION = "Write one sentence: order ORD-1 has shipped.";
 
 const STREAM_MODES = [
   {
     name: "updates",
     event: "{node_name: partial update}",
-    when: "Thinking room: every node tells the user it just ran",
+    when: "Debug / progress: which node just wrote what",
+    see: "print the dict. {'chatbot': ['AIMessage: …']} — HumanMessage is not here.",
     walk: [
       {
         nodes: ["START"],
         edges: [],
-        note: "updates is the thinking stream. Each event is keyed by the node that just ran — that is what you show the user as thinking.",
-        ticket: { to_user: "thinking: which node is working" },
+        note: "Same question as the other three watches. No tools. stream_mode='updates'.",
+        ticket: { question: STREAM_QUESTION },
       },
       {
         nodes: ["START", "chatbot"],
         edges: [{ from: "START", to: "chatbot" }],
-        note: "This graph only has chatbot, so you see {'chatbot': {'messages': [...]}} — the NEW bit that node returned. Next lesson, tools will send a thinking event too.",
-        ticket: { event: "{'chatbot': {'messages': [...]}}" },
+        note: "print() shows only what chatbot returned. The HumanMessage is not in this dict.",
+        ticket: { print: "{'chatbot': ['AIMessage: Order ORD-1 has shipped.']}" },
       },
       {
         nodes: ["START", "chatbot", "END"],
         edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "END" }],
-        note: "Not the final reply. Thinking only. messages is the answer you send. Next lesson streams both at once.",
-        ticket: { to_user: "[thinking] step=chatbot" },
+        note: "Use this to debug: which node just wrote what. Next lesson, tools sends an updates event too.",
+        ticket: { print: "{'chatbot': ['AIMessage: Order ORD-1 has shipped.']}" },
       },
     ],
   },
   {
     name: "values",
     event: "full TicketState after that step",
-    when: "UI that re-renders the whole ticket",
+    when: "UI that re-renders the whole ticket each step",
+    see: "print types. msgs=1 [HumanMessage] then msgs=2 [HumanMessage, AIMessage].",
     walk: [
       {
         nodes: ["START"],
         edges: [],
-        note: "stream_mode='values'. print keys and len(state['messages']) — full ticket, not a delta, not thinking, not tokens.",
-        ticket: { print: "keys: ['messages'] msgs: 1" },
+        note: "Same question. stream_mode='values'. Each event is the full ticket — not a delta.",
+        ticket: { question: STREAM_QUESTION, print: "msgs=1  ['HumanMessage']" },
       },
       {
         nodes: ["START", "chatbot"],
         edges: [{ from: "START", to: "chatbot" }],
-        note: "Count grows 1 → 2 because full history is included each step. The HumanMessage is still on the ticket.",
-        ticket: { print: "keys: ['messages'] msgs: 2" },
+        note: "Count grows because history stays. HumanMessage is still on the ticket, plus the reply.",
+        ticket: { print: "msgs=2  ['HumanMessage', 'AIMessage']" },
       },
       {
         nodes: ["START", "chatbot", "END"],
         edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "END" }],
         note: "Use this when a UI re-renders the whole ticket after each step.",
-        ticket: { print: "keys: ['messages'] msgs: 2" },
+        ticket: { print: "msgs=2  ['HumanMessage', 'AIMessage']" },
       },
     ],
   },
   {
     name: "messages",
     event: "(token_chunk, meta) from the LLM",
-    when: "The final reply you send — token by token",
+    when: "Last AI reply, typing effect",
+    see: "Only the last AI response. Tokens type it out.",
     walk: [
       {
         nodes: ["START"],
         edges: [],
-        note: "messages is the answer stream. Each event is (token_chunk, meta) — not a state dict, not thinking.",
-        ticket: { to_user: "the reply, as it types" },
+        note: "messages gives only the last AI response. Same words invoke() will dump. Not the ticket.",
+        ticket: { what: "last AI reply only" },
       },
       {
         nodes: ["START", "chatbot"],
         edges: [{ from: "START", to: "chatbot" }],
-        note: "print(chunk.content, end='') — this is what you send the customer. Piece by piece, chat-style.",
-        ticket: { tokens: "ORD-1 sh" },
+        note: "The only difference: tokens arrive like a typing effect.",
+        ticket: { print: "Order" },
       },
       {
         nodes: ["START", "chatbot", "END"],
         edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "END" }],
-        note: "The finished sentence is the final send. One mode at a time here — next lesson adds the thinking room on the same stream.",
-        ticket: { tokens: "ORD-1 shipped" },
+        note: "Done typing. Still only that last AI response.",
+        ticket: { print: "Order ORD-1 has shipped." },
       },
     ],
   },
   {
     name: "invoke()",
     event: "one final state (not streaming)",
-    when: "You only need the finished reply — no thinking, no typing",
+    when: "Same last AI reply, dumped once",
+    see: "Only the last AI response. No typing.",
     walk: [
       {
         nodes: ["START"],
         edges: [],
-        note: "app.invoke(inputs) is not a stream. Nothing goes to the user while chatbot runs.",
-        ticket: { print: "(waiting — no events)" },
+        note: "invoke() also gives only the last AI response. It does not type.",
+        ticket: { what: "last AI reply, wait" },
       },
       {
         nodes: ["START", "chatbot"],
         edges: [{ from: "START", to: "chatbot" }],
-        note: "No thinking event. No tokens. The ticket is moving, the UI is blank.",
-        ticket: { print: "(still waiting)" },
+        note: "Still waiting. messages is already typing the same reply.",
+        ticket: { print: "(waiting)" },
       },
       {
         nodes: ["START", "chatbot", "END"],
         edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "END" }],
-        note: "One finished ticket. Use invoke() only when you do not need a live thinking room or a typing reply.",
-        ticket: { print: "one final state" },
+        note: "Same last AI response as messages, dumped once.",
+        ticket: { print: "Order ORD-1 has shipped." },
       },
     ],
   },
@@ -1369,9 +1400,14 @@ function StreamModes({ caseIdx, setCaseIdx }) {
   const { step, setStep, playing, setPlaying, beat } = useWalk(active.walk, `streaming-${caseIdx}`);
   return (
     <div className="mb-6 rounded-2xl border border-line bg-slate-950 p-4 text-white shadow-sm sm:p-5">
-      <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">08 · Streaming</p>
+      <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">09 · Streaming</p>
       <p className="mt-1 mb-3 font-serif text-lg text-slate-200">
-        updates is the thinking room: every node reports to the user. messages is the final reply you send.
+        Same question, four watches. No tools. Only stream_mode (or invoke) changes.
+      </p>
+      <p className="mb-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 font-mono text-[11px] text-slate-300">
+        <span className="text-teal-300">question</span>
+        <span className="text-slate-500">: </span>
+        {STREAM_QUESTION}
       </p>
       <div className="mb-4 grid gap-2 sm:grid-cols-2">
         {STREAM_MODES.map((mode, i) => (
@@ -1392,11 +1428,24 @@ function StreamModes({ caseIdx, setCaseIdx }) {
             <p className="m-0 mt-0.5 font-mono text-[11px] text-slate-200">{mode.event}</p>
             <p className="m-0 mt-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500">When to use</p>
             <p className="m-0 mt-0.5 font-serif text-[12px] text-slate-400">{mode.when}</p>
+            <p className="m-0 mt-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500">How to see</p>
+            <p className="m-0 mt-0.5 font-serif text-[12px] text-slate-400">{mode.see}</p>
           </button>
         ))}
       </div>
+      <CompareTable
+        table={{
+          title: "messages vs invoke() — both are only the last AI response",
+          highlight: 2,
+          headers: ["Watch", "What you get", "How it arrives"],
+          rows: [
+            ["messages", "last AI response only", "token by token — typing effect"],
+            ["invoke()", "last AI response only", "one dump, no typing"],
+          ],
+        }}
+      />
       <p className="mb-3 font-serif text-sm text-slate-400">
-        Press updates, then messages. This graph only has chatbot — next lesson, tools sends thinking too.
+        Pick a mode, then Play. Same last AI response. messages types it. invoke() dumps it.
       </p>
       <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-4">
         <FlowChart spec={STREAM_GRAPH} activeNodes={beat?.nodes} activeEdges={beat?.edges} />
@@ -1406,9 +1455,55 @@ function StreamModes({ caseIdx, setCaseIdx }) {
           setStep={setStep}
           playing={playing}
           setPlaying={setPlaying}
-          idleNote="The graph is this line. Pick a mode on the dashboard, then Play to see what print() shows."
+          idleNote="START → chatbot → END. Pick a mode, then Play to see what that print looks like."
         />
       </div>
+    </div>
+  );
+}
+
+function CompareTable({ table }) {
+  if (!table?.headers?.length || !table?.rows?.length) return null;
+  const hot = table.highlight ?? 2;
+  return (
+    <div className="mb-4 overflow-x-auto">
+      <p className="m-0 mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500">{table.title || "When to use which"}</p>
+      <table className="w-full min-w-[40rem] border-collapse text-left">
+        <thead>
+          <tr className="border-b border-slate-700">
+            {table.headers.map((header, i) => (
+              <th
+                key={header}
+                className={`py-2 pr-3 font-mono text-[10px] font-bold uppercase tracking-wider ${
+                  i === hot ? "text-teal-300" : "text-slate-500"
+                }`}
+              >
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row) => (
+            <tr key={row[0]} className="border-b border-slate-800 align-top last:border-b-0">
+              {row.map((cell, i) => (
+                <td
+                  key={`${row[0]}-${i}`}
+                  className={`py-2.5 pr-3 ${
+                    i === 0
+                      ? "font-mono text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                      : i === hot
+                        ? "font-serif text-[12px] text-teal-100"
+                        : "font-serif text-[12px] text-slate-300"
+                  }`}
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -1529,7 +1624,7 @@ function SubgraphLesson() {
 
   return (
     <div className="mb-6 rounded-2xl border border-line bg-slate-950 p-4 text-white shadow-sm sm:p-5">
-      <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">14 · Subgraphs</p>
+      <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">15 · Subgraphs</p>
       <p className="mt-1 mb-4 font-serif text-lg text-slate-200">
         lookup is a compiled graph used as one parent node. The box is that graph.
       </p>
@@ -1673,7 +1768,7 @@ function WhenToBuild({ caseIdx, setCaseIdx }) {
         setStep={setStep}
         playing={playing}
         setPlaying={setPlaying}
-        idleNote="Press a place, then Play. The diagrams are the three answers in the file — not the Python itself."
+        idleNote="Press a place, then Play. The diagrams are the decision. This lesson does not need a program."
       />
     </div>
   );
@@ -1801,6 +1896,95 @@ function HitlLesson({ caseIdx, setCaseIdx }) {
   );
 }
 
+const LOOP_TABLE = {
+  title: "tools_condition on chatbot",
+  highlight: 1,
+  headers: ["After chatbot", "Next hop"],
+  rows: [
+    ["Last message has tool_calls", "tools"],
+    ["Last message has no tool_calls", "END"],
+  ],
+};
+
+const LOOP_WALK = [
+  { nodes: ["START"], edges: [], note: "Last lesson always did chatbot → tools → END. No way back. This graph has a double arrow: chatbot ↔ tools." },
+  { nodes: ["START", "chatbot"], edges: [{ from: "START", to: "chatbot" }], note: "First hop: chatbot writes tool_calls. tools_condition: if there are tool_calls, go to tools." },
+  {
+    nodes: ["START", "chatbot", "tools"],
+    edges: [
+      { from: "START", to: "chatbot" },
+      { from: "chatbot", to: "tools" },
+      { from: "tools", to: "chatbot" },
+    ],
+    note: "ToolNode runs lookup_order(ORD-1) → shipped. The ↑ result edge sends that ToolMessage back to chatbot.",
+  },
+  {
+    nodes: ["START", "chatbot", "tools", "END"],
+    edges: [
+      { from: "START", to: "chatbot" },
+      { from: "chatbot", to: "tools" },
+      { from: "tools", to: "chatbot" },
+      { from: "chatbot", to: "END" },
+    ],
+    note: "Second hop: chatbot writes the reply. No tool_calls. tools_condition: if not, go to END.",
+  },
+];
+
+function LoopDoubleArrow({ downOn, upOn }) {
+  const on = downOn || upOn;
+  return (
+    <div className="flex flex-col items-center py-1">
+      <Label text="↓ tool_calls" on={downOn} />
+      <p className={`m-0 my-1 font-mono text-4xl leading-none ${on ? "text-teal-300" : "text-slate-500"}`}>↕</p>
+      <Label text="↑ result" on={upOn} />
+    </div>
+  );
+}
+
+function AgentLoopLesson() {
+  const { step, setStep, playing, setPlaying, beat } = useWalk(LOOP_WALK, "loop");
+  const nodes = beat?.nodes;
+  const edges = beat?.edges;
+  return (
+    <div className="mb-6 rounded-2xl border border-line bg-slate-950 p-4 text-white shadow-sm sm:p-5">
+      <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">07 · Agent loops</p>
+      <p className="mt-1 mb-4 font-serif text-lg text-slate-200">
+        chatbot ↔ tools. tools_condition on chatbot: if there are tool_calls, go to tools; if not, go to END.
+      </p>
+      <CompareTable table={LOOP_TABLE} />
+      <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-4">
+        <div className="flex flex-col items-center">
+          <NodeBox name="START" on={isOn(nodes, "START")} meaning="Status of ORD-1?" />
+          <Stem on={edgeOn(edges, "START", "chatbot")} />
+          <NodeBox name="chatbot" on={isOn(nodes, "chatbot")} meaning="tools_condition reads this message" />
+          <div className="mt-1 flex w-full max-w-lg flex-col items-center">
+            <div className="h-5 w-px bg-slate-500" />
+            <TBar count={2} />
+            <div className="flex w-full">
+              <div className="flex flex-1 flex-col items-center">
+                <LoopDoubleArrow downOn={edgeOn(edges, "chatbot", "tools")} upOn={edgeOn(edges, "tools", "chatbot")} />
+                <NodeBox name="tools" on={isOn(nodes, "tools")} meaning="lookup_order" />
+              </div>
+              <div className="flex flex-1 flex-col items-center">
+                <Stem on={edgeOn(edges, "chatbot", "END")} label="no tool_calls" />
+                <NodeBox name="END" on={isOn(nodes, "END")} meaning="the reply" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <WalkBar
+          walk={LOOP_WALK}
+          step={step}
+          setStep={setStep}
+          playing={playing}
+          setPlaying={setPlaying}
+          idleNote="The double arrow is chatbot ↔ tools. Press Play."
+        />
+      </div>
+    </div>
+  );
+}
+
 export function GraphWalk({ id }) {
   const spec = DIAGRAMS[id];
   const [caseIdx, setCaseIdx] = useState(0);
@@ -1820,8 +2004,8 @@ export function GraphWalk({ id }) {
   if (spec.kind === "why") return <WhyLangGraph />;
   if (spec.kind === "reducers") return <StateReducers caseIdx={caseIdx} setCaseIdx={setCaseIdx} />;
   if (spec.kind === "streaming") return <StreamModes caseIdx={caseIdx} setCaseIdx={setCaseIdx} />;
-  if (spec.kind === "loop") return <AgentLoop caseIdx={caseIdx} setCaseIdx={setCaseIdx} />;
   if (spec.kind === "subgraph") return <SubgraphLesson />;
+  if (spec.kind === "loop") return <AgentLoopLesson />;
   if (spec.kind === "when") return <WhenToBuild caseIdx={caseIdx} setCaseIdx={setCaseIdx} />;
   if (spec.kind === "hitl") return <HitlLesson caseIdx={caseIdx} setCaseIdx={setCaseIdx} />;
 
@@ -1829,6 +2013,7 @@ export function GraphWalk({ id }) {
     <div className="mb-6 rounded-2xl border border-line bg-slate-950 p-4 text-white shadow-sm sm:p-5">
       <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">{spec.kicker}</p>
       <p className="mt-1 mb-4 font-serif text-lg text-slate-200">{spec.caption}</p>
+      <CompareTable table={spec.compareTable} />
       <DashCards items={spec.dashboard} />
       <ConfigBag bag={spec.configBag} hot={beat?.hot} />
       <FrameStrip frames={spec.frames} hot={beat?.frame} title={spec.framesTitle} />

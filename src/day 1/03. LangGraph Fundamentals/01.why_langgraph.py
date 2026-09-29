@@ -1,7 +1,19 @@
 # 01 — Why LangGraph
 #
-# Concept: a chain is linear — A → B → C → stop.
-# LangGraph is for when a ticket needs more than a straight line:
+# Concept: every process you build with LangGraph is a graph.
+#   START — you always begin here
+#   END   — you always finish here
+#   middle — whatever you decide
+#
+# Elementary graph (what we build first):
+#   START → P → END
+#   P is one node: send a prompt to an LLM, then stop.
+#
+# The middle can grow: more nodes, if/else branches, loops back into the
+# same node. It can get complex. It is still START … END.
+#
+# A chain is a graph that never goes back — A → B → C → stop.
+# LangGraph is for when the middle needs more than a straight line:
 #   cycles       — go back (retry lookup, agent ↔ tools)
 #   branching    — pick the next desk from ticket state
 #   shared state — many nodes read/write the same ticket fields
@@ -9,8 +21,8 @@
 # Limitation overcome: a plain chain can only do normalize → lookup → reply → stop.
 # It cannot: lookup → miss → lookup again → then stop.
 #
-# Example: order-support for ORD-3 (cancelled order that needs special handling).
-# We'll solve the SAME problem THREE ways to see why LangGraph matters.
+# Example: after the elementary picture, the SAME ORD-3 cancelled ticket
+# three ways — LLM alone, a chain, then a graph that branches.
 
 from typing import TypedDict
 

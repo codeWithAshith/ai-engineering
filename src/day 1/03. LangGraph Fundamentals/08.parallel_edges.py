@@ -1,10 +1,13 @@
-# 07 — Parallel fixed edges
+# 08 — Parallel fixed edges
 #
 # Concept: multiple edges from START or from one node run nodes in parallel.
 #   Linear:   START → A → B → END
 #   Parallel: START → A and B (both run), then merge → C → END
 #
 # KEY: two add_edge from START. Both branches must finish before merge.
+# Merge waits. The fast branch does not start merge early. The slow one
+# does not get skipped. Both have an edge into merge — that is a join:
+# merge runs once, after both have finished.
 # Branches do not see each other's writes until merge.
 #
 # Differs from map-reduce (Send): here edges are fixed in code.

@@ -1,4 +1,4 @@
-# 11 — RunnableConfig extras (recursion_limit, metadata)
+# 12 — RunnableConfig extras (recursion_limit, metadata)
 #
 # Concept: invoke/stream take a config dict you pass every time.
 # There is no config_id. Config does not float onto a thread by itself.
