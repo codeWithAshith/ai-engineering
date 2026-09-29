@@ -1238,18 +1238,18 @@ export const course = {
           ]
         },
         {
-          "id": "module:day 1/04. Building Agents with LangGraph",
+          "id": "module:day 1/04. Human pauses",
           "title": "04. Human pauses",
           "items": [
             {
-              "id": "lesson:day 1/04. Building Agents with LangGraph/01.when_to_build_agents.py",
+              "id": "lesson:day 1/04. Human pauses/01.when_to_build_agents.py",
               "kind": "lesson",
               "title": "When to build an agent",
               "n": "01",
               "learn": "If you can write the steps on a whiteboard, do not start with an agent.",
               "file": "01.when_to_build_agents.py",
               "day": 1,
-              "module": "04. Building Agents with LangGraph",
+              "module": "04. Human pauses",
               "notes": [
                 "**No program.** This is a decision. The page is the lesson.",
                 "**LLM app.** One prompt, no live data. FAQs and policy. “Can I get a refund for ORD-1?” — the model guesses. It cannot see the order table.",
@@ -1262,14 +1262,14 @@ export const course = {
               "graph": "when"
             },
             {
-              "id": "lesson:day 1/04. Building Agents with LangGraph/06.where_to_pause.py",
+              "id": "lesson:day 1/04. Human pauses/06.where_to_pause.py",
               "kind": "lesson",
               "title": "Where a pause can sit",
               "n": "02",
               "learn": "Four boundaries: before the model, after the model, before the tool, after the tool.",
               "file": "06.where_to_pause.py",
               "day": 1,
-              "module": "04. Building Agents with LangGraph",
+              "module": "04. Human pauses",
               "notes": [
                 "**Before the model.** `interrupt_before=[\"chatbot\"]`. The question is in. The model has not written yet.",
                 "**After the model.** `interrupt_after=[\"chatbot\"]`. You can read the message, including a planned tool call. The tool has not run.",
@@ -1295,7 +1295,7 @@ export const course = {
               "graph": "pauses"
             },
             {
-              "id": "lesson:day 1/04. Building Agents with LangGraph/02.human_in_the_loop.py",
+              "id": "lesson:day 1/04. Human pauses/02.human_in_the_loop.py",
               "kind": "lesson",
               "title": "Human in the loop",
               "n": "03",
@@ -1308,7 +1308,7 @@ export const course = {
               ],
               "file": "02.human_in_the_loop.py",
               "day": 1,
-              "module": "04. Building Agents with LangGraph",
+              "module": "04. Human pauses",
               "blocks": [
                 {
                   "type": "table",
@@ -1365,7 +1365,7 @@ export const course = {
               }
             },
             {
-              "id": "lesson:day 1/04. Building Agents with LangGraph/03.approve_before_tools.py",
+              "id": "lesson:day 1/04. Human pauses/03.approve_before_tools.py",
               "kind": "lesson",
               "title": "Approve before tools",
               "n": "04",
@@ -1378,14 +1378,14 @@ export const course = {
               ],
               "file": "03.approve_before_tools.py",
               "day": 1,
-              "module": "04. Building Agents with LangGraph",
+              "module": "04. Human pauses",
               "snippet": "app = graph.compile(checkpointer=MemorySaver(), interrupt_before=[\"tools\"])\ndone = app.invoke(None, config=cfg)",
               "sample": "pending: cancel_order(ORD-1)\napproved → tool runs",
               "demo": "graph",
               "graph": "approve"
             },
             {
-              "id": "lesson:day 1/04. Building Agents with LangGraph/04.hitl_fix_resume.py",
+              "id": "lesson:day 1/04. Human pauses/04.hitl_fix_resume.py",
               "kind": "lesson",
               "title": "Fix and resume",
               "n": "05",
@@ -1398,14 +1398,14 @@ export const course = {
               ],
               "file": "04.hitl_fix_resume.py",
               "day": 1,
-              "module": "04. Building Agents with LangGraph",
+              "module": "04. Human pauses",
               "snippet": "app.update_state(config, {\"messages\": [fixed]})\napp.invoke(None, config)",
               "sample": "paused — planned refund ORD-1\nedited to ORD-2\nresume → refund filed for ORD-2",
               "demo": "graph",
               "graph": "fix"
             },
             {
-              "id": "lesson:day 1/04. Building Agents with LangGraph/05.agent_handoff.py",
+              "id": "lesson:day 1/04. Human pauses/05.agent_handoff.py",
               "kind": "lesson",
               "title": "Agent handoff",
               "n": "06",
@@ -1418,7 +1418,7 @@ export const course = {
               ],
               "file": "05.agent_handoff.py",
               "day": 1,
-              "module": "04. Building Agents with LangGraph",
+              "module": "04. Human pauses",
               "snippet": "coordinator.add_node(\"refund\", refund_agent)\ncoordinator.add_conditional_edges(\"classify\", route, {\"refund\": \"refund\", \"tracking\": \"tracking\", \"general\": \"general\"})",
               "sample": "refund question → refund agent\ntracking question → tracking agent\nhello → general agent",
               "demo": "graph",
@@ -1435,11 +1435,11 @@ export const course = {
       "title": "Day 2",
       "groups": [
         {
-          "id": "module:day 2/04. Advanced Tool Patterns",
-          "title": "04. Advanced Tool Patterns",
+          "id": "module:day 2/04. Middleware",
+          "title": "04. Middleware",
           "items": [
             {
-              "id": "lesson:day 2/04. Advanced Tool Patterns/01.default_middleware.py",
+              "id": "lesson:day 2/04. Middleware/01.default_middleware.py",
               "kind": "lesson",
               "title": "Default middleware",
               "n": "01",
@@ -1451,12 +1451,12 @@ export const course = {
               ],
               "file": "01.default_middleware.py",
               "day": 2,
-              "module": "04. Advanced Tool Patterns",
+              "module": "04. Middleware",
               "snippet": "create_agent(model, tools=[lookup_order], middleware=[ToolErrorMiddleware()])",
               "sample": "ORD-999 raises\nmodel receives an error ToolMessage and replies"
             },
             {
-              "id": "lesson:day 2/04. Advanced Tool Patterns/02.human_middleware.py",
+              "id": "lesson:day 2/04. Middleware/02.human_middleware.py",
               "kind": "lesson",
               "title": "A person approves the write",
               "n": "02",
@@ -1469,12 +1469,12 @@ export const course = {
               ],
               "file": "02.human_middleware.py",
               "day": 2,
-              "module": "04. Advanced Tool Patterns",
+              "module": "04. Middleware",
               "snippet": "HumanInTheLoopMiddleware(interrupt_on={\"update_order_status\": True})",
               "sample": "paused: true\nafter approve: ORD-1 is delivered"
             },
             {
-              "id": "lesson:day 2/04. Advanced Tool Patterns/03.custom_middleware.py",
+              "id": "lesson:day 2/04. Middleware/03.custom_middleware.py",
               "kind": "lesson",
               "title": "Custom middleware",
               "n": "03",
@@ -1486,12 +1486,12 @@ export const course = {
               ],
               "file": "03.custom_middleware.py",
               "day": 2,
-              "module": "04. Advanced Tool Patterns",
+              "module": "04. Middleware",
               "snippet": "@wrap_tool_call\ndef audit(request, handler):\n    print(request.tool_call)\n    return handler(request)",
               "sample": "lookup_order ORD-1\nshipped"
             },
             {
-              "id": "lesson:day 2/04. Advanced Tool Patterns/04.agent_context.py",
+              "id": "lesson:day 2/04. Middleware/04.agent_context.py",
               "kind": "lesson",
               "title": "Agent context",
               "n": "04",
@@ -1503,12 +1503,12 @@ export const course = {
               ],
               "file": "04.agent_context.py",
               "day": 2,
-              "module": "04. Advanced Tool Patterns",
+              "module": "04. Middleware",
               "snippet": "agent.invoke({\"messages\": [...]}, context={\"role\": \"agent\", \"user_id\": \"u1\"})",
               "sample": "who_am_i: agent u1"
             },
             {
-              "id": "lesson:day 2/04. Advanced Tool Patterns/06.tool_governance.py",
+              "id": "lesson:day 2/04. Middleware/06.tool_governance.py",
               "kind": "lesson",
               "title": "Tool governance",
               "n": "06",
@@ -1520,12 +1520,12 @@ export const course = {
               ],
               "file": "06.tool_governance.py",
               "day": 2,
-              "module": "04. Advanced Tool Patterns",
+              "module": "04. Middleware",
               "snippet": "if request.runtime.context.role != \"agent\":\n    return \"ERROR: not allowed\"",
               "sample": "viewer + issue_refund → blocked\nagent + issue_refund → allowed"
             },
             {
-              "id": "lesson:day 2/04. Advanced Tool Patterns/07.dynamic_prompt.py",
+              "id": "lesson:day 2/04. Middleware/07.dynamic_prompt.py",
               "kind": "lesson",
               "title": "Dynamic prompt",
               "n": "07",
@@ -1537,12 +1537,12 @@ export const course = {
               ],
               "file": "07.dynamic_prompt.py",
               "day": 2,
-              "module": "04. Advanced Tool Patterns",
+              "module": "04. Middleware",
               "snippet": "@dynamic_prompt\ndef role_prompt(request):\n    return prompt_for(request.runtime.context.role)",
               "sample": "agent: I can check that order.\ncustomer: I can't look up orders."
             },
             {
-              "id": "lesson:day 2/04. Advanced Tool Patterns/08.dynamic_tools.py",
+              "id": "lesson:day 2/04. Middleware/08.dynamic_tools.py",
               "kind": "lesson",
               "title": "Dynamic tools",
               "n": "08",
@@ -1554,7 +1554,7 @@ export const course = {
               ],
               "file": "08.dynamic_tools.py",
               "day": 2,
-              "module": "04. Advanced Tool Patterns",
+              "module": "04. Middleware",
               "snippet": "@wrap_model_call\ndef tools_for_role(request, handler):\n    return handler(request.override(tools=tools_for(request.runtime.context.role)))",
               "sample": "agent: ORD-1 is shipped.\ncustomer: no lookup tool on this call"
                 }
