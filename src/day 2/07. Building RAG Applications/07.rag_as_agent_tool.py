@@ -79,7 +79,6 @@ graph.add_conditional_edges("chatbot", tools_condition)
 graph.add_edge("tools", "chatbot")
 app = graph.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 for q in ["Status of ORD-1?", "What is the refund window?"]:
     r = app.invoke({"messages": [HumanMessage(content=q)]})

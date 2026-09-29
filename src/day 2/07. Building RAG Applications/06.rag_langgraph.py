@@ -66,7 +66,6 @@ g.add_edge("retrieve", "generate")
 g.add_edge("generate", END)
 app = g.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 print(app.invoke({"question": "Who do I email for ORD tickets?", "context": "", "answer": ""}))
 print("-" * 100)

@@ -47,7 +47,6 @@ graph.add_edge("vip", END)
 graph.add_edge("standard", END)
 app = graph.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 print("high:", app.invoke({"order_id": "ORD-1", "priority": "high", "desk": ""}))
 print("normal:", app.invoke({"order_id": "ORD-2", "priority": "normal", "desk": ""}))

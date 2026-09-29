@@ -52,7 +52,6 @@ parent.add_edge("lookup", "format_note")
 parent.add_edge("format_note", END)
 app = parent.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 print("ORD-1:", app.invoke({"order_id": " ord-1 ", "status": "", "note": ""}))
 print("ORD-2:", app.invoke({"order_id": "ord-2", "status": "", "note": ""}))

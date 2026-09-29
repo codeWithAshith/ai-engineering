@@ -72,7 +72,6 @@ graph.add_edge("tools", "chatbot")
 # Desk policy: nothing runs until a human approves the planned tool call
 app = graph.compile(checkpointer=MemorySaver(), interrupt_before=["tools"])
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 
 cfg = {"configurable": {"thread_id": "cancel-ORD-1"}}

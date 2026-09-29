@@ -66,7 +66,6 @@ graph.add_conditional_edges("chatbot", tools_condition)
 graph.add_edge("tools", "chatbot")
 app = graph.compile(checkpointer=MemorySaver(), interrupt_before=["tools"])
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 
 cfg = {"configurable": {"thread_id": "refund-fix"}}
