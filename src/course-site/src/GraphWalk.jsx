@@ -284,6 +284,19 @@ const DIAGRAMS = {
       { nodes: ["START", "normalize", "check_tier", "merge", "END"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }, { from: "normalize", to: "merge" }, { from: "check_tier", to: "merge" }, { from: "merge", to: "END" }], note: "notes concatenate with Annotated[list, add]." },
     ],
   },
+  mw01: { kind: "middleware", kicker: "01 · Default middleware", caption: "The agent function stays the same. The list is the wrapper.", sits: "A sits on the tool. B and C stop the run.", table: { title: "Three guards, one list", highlight: 1, headers: ["Wrapper", "What this file does", "ORD example"], rows: [["ToolErrorMiddleware", "A raised error becomes a tool message the model can read", "ORD-999 raises → model gets ERROR"], ["ToolCallLimitMiddleware", "Stop after too many tool calls", "run_limit=1, ping twice → ToolCallLimitExceededError"], ["ModelCallLimitMiddleware", "Stop after too many model calls", "run_limit=1, lookup then reply → ModelCallLimitExceededError"]] } },
+  mw02: { kind: "middleware", kicker: "02 · A person approves the write", caption: "The write waits. ORD-1 stays shipped until approve.", sits: "HumanInTheLoopMiddleware sits before update_order_status.", table: { title: "One question: set ORD-1 to delivered", highlight: 1, headers: ["Moment", "What you see"], rows: [["Before approve", "paused. ORD-1 is still shipped."], ["After approve", "The tool runs. ORD-1 is delivered."]] } },
+  mw03: { kind: "middleware", kicker: "03 · Custom middleware", caption: "wrap_tool_call sits around the real tool. Log, then call the handler.", sits: "(request, handler) → handler(request) is the real tool.", table: { title: "Audit does not change the answer", highlight: 1, headers: ["Step", "ORD-1"], rows: [["Log", "lookup_order and the arguments"], ["Return", "shipped, unchanged"]] } },
+  mw04: { kind: "middleware", kicker: "04 · Agent context", caption: "Context is who is calling this time. Not the chat. Not the thread.", sits: "invoke(..., context=...) then the tool reads runtime.context.", table: { title: "Three different bags", highlight: 1, headers: ["Bag", "What it is"], rows: [["messages", "The conversation"], ["checkpointer", "The thread"], ["context", "This caller: role, user id"]] } },
+  mw06: { kind: "middleware", kicker: "06 · Tool governance", caption: "The role is checked when the tool runs. One agent for both roles.", sits: "wrap_tool_call reads context.role and allows or blocks.", table: { title: "Same agent, different role", highlight: 2, headers: ["Caller", "issue_refund"], rows: [["viewer", "blocked"], ["agent", "allowed"]] } },
+  mw07: { kind: "middleware", kicker: "07 · Dynamic prompt", caption: "The system prompt is written for this call, before the model node.", sits: "@dynamic_prompt reads context.role and returns the prompt.", table: { title: "One agent, two prompts", highlight: 1, headers: ["Role", "Prompt says"], rows: [["agent", "You may discuss order status."], ["customer", "Do not offer to look up orders."]] } },
+  mw08: { kind: "middleware", kicker: "08 · Dynamic tools", caption: "This call's context chooses which tools the model can see.", sits: "@wrap_model_call replaces request.tools, then the model runs.", table: { title: "Registered list stays. This call changes.", highlight: 1, headers: ["Role", "Tools on this call"], rows: [["agent", "lookup_order"], ["customer", "none"]] } },
+  mw09: { kind: "middleware", kicker: "09 · Dynamic model", caption: "This call's context swaps request.model. The branch is the lesson.", sits: "@wrap_model_call overrides model, then the model runs.", table: { title: "Same Groq model, two names", highlight: 1, headers: ["Role", "What prints"], rows: [["viewer", "viewer -> that model name"], ["agent", "agent -> that model name"]] } },
+  mw10: { kind: "middleware", kicker: "10 · Dynamic messages", caption: "The thread keeps the email. Only a viewer is sent the latest message.", sits: "@wrap_model_call trims when role is viewer.", table: { title: "Same two messages. Role decides.", highlight: 1, headers: ["Role", "Sent to the model"], rows: [["viewer", "Latest question only. Does not know the email."], ["agent", "Both messages. Can quote ada@example.com."]] } },
+  mw11: { kind: "middleware", kicker: "11 · Tool retry", caption: "A named tool is tried again after a timeout. A refund is not in that list.", sits: "ToolRetryMiddleware wraps lookup_order only.", table: { title: "First call fails. Second call is the retry.", highlight: 1, headers: ["Call", "lookup_order"], rows: [["1", "TimeoutError"], ["2", "ORD-1 shipped"]] } },
+  mw12: { kind: "middleware", kicker: "12 · PII redaction", caption: "The email is redacted before the model sees the message.", sits: "PIIMiddleware on the input. strategy redact.", table: { title: "The model can only quote what it saw", highlight: 1, headers: ["Side", "Text"], rows: [["You typed", "ada@example.com"], ["Model saw", "the redacted form"]] } },
+  mw13: { kind: "middleware", kicker: "13 · Model fallback", caption: "The first model name fails. The same turn runs on the fallback.", sits: "ModelFallbackMiddleware swaps in the Groq model.", table: { title: "One invoke, two model names", highlight: 1, headers: ["Name", "What happens"], rows: [["groq:model-that-does-not-exist", "Fails"], ["groq:openai/gpt-oss-20b", "Replies: ready"]] } },
+  mw14: { kind: "middleware", kicker: "14 · Tool selector", caption: "Four tools are registered. This question keeps one.", sits: "LLMToolSelectorMiddleware runs before the main model.", table: { title: "Status of ORD-1?", highlight: 1, headers: ["Tool", "Kept for this question"], rows: [["lookup_order", "Yes"], ["issue_refund", "No"], ["store_hours", "No"], ["menu", "No"]] } },
   streaming: { kind: "streaming" },
   thinking: {
     kicker: "10 · Thinking stream",
@@ -2084,6 +2097,17 @@ function AgentLoopLesson() {
   );
 }
 
+function MiddlewareCard({ spec }) {
+  return (
+    <div className="mb-6 rounded-2xl border border-line bg-slate-950 p-4 text-white shadow-sm sm:p-5">
+      <p className="m-0 font-sans text-xs font-bold uppercase tracking-wider text-teal-300">{spec.kicker}</p>
+      <p className="mt-1 mb-3 font-serif text-lg text-slate-200">{spec.caption}</p>
+      <p className="mb-4 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 font-mono text-[11px] text-teal-100">{spec.sits}</p>
+      <CompareTable table={spec.table} />
+    </div>
+  );
+}
+
 export function GraphWalk({ id }) {
   const spec = DIAGRAMS[id];
   const [caseIdx, setCaseIdx] = useState(0);
@@ -2100,6 +2124,7 @@ export function GraphWalk({ id }) {
   const { step, setStep, playing, setPlaying, beat } = useWalk(walk, `${id}-${caseIdx}`);
 
   if (!spec) return null;
+  if (spec.kind === "middleware") return <MiddlewareCard spec={spec} />;
   if (spec.kind === "why") return <WhyLangGraph />;
   if (spec.kind === "reducers") return <StateReducers caseIdx={caseIdx} setCaseIdx={setCaseIdx} />;
   if (spec.kind === "streaming") return <StreamModes caseIdx={caseIdx} setCaseIdx={setCaseIdx} />;

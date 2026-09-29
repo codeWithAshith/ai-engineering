@@ -85,7 +85,7 @@ function findItem(route) {
 }
 
 function moduleTitle(title) {
-  return title.replace(/^\d+\.\s*/, "");
+  return title.replace(/^\d+(?:\.\d+)?\.?\s+/, "");
 }
 
 function groupKey(sectionId, groupId) {
@@ -452,7 +452,7 @@ function Article({ item, prev, next }) {
       {item.demo === "refund-cases" ? <RefundCases /> : null}
       {item.demo === "response-shape" ? <ResponseShape /> : null}
       {item.demo === "reactive-loop" ? <ReactiveLoop /> : null}
-      {item.demo === "graph" ? <GraphWalk id={item.graph} /> : null}
+      {item.demo === "graph" || item.graph ? <GraphWalk id={item.graph} /> : null}
       <FlowDiagram diagram={item.diagram} />
       {item.notes?.length ? (
         <div className="mb-5 rounded-xl border border-line bg-surface p-4 shadow-xs">
