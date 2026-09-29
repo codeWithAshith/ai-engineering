@@ -1,4 +1,4 @@
-# 15 — Map-reduce with Send
+# 16 — Map-reduce with Send
 #
 # Concept: fan-out with Send (one worker per item), then a reduce node joins results.
 # Annotated[..., add] merges worker updates; Send controls the parallel branches.
@@ -41,5 +41,5 @@ app = graph.compile()
 
 print(app.get_graph().draw_mermaid())
 print("-" * 100)
-print(app.invoke({"order_ids": ["ORD-1", "ORD-2", "ORD-3"], "notes": [], "summary": ""}))
+print(app.invoke({"order_ids": ["ORD-1", "ORD-2", "ORD-3"]}))
 print("-" * 100)

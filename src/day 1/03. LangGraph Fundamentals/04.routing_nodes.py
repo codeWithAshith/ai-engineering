@@ -4,12 +4,13 @@
 # then a thin conditional edge only reads that field.
 # Use when the decision should be stored, logged, or reused.
 #
-# |                        | Conditional edge                   | Routing node                         |
+# | Metric                 | Pure conditional edge              | Routing node + thin edge             |
 # |------------------------|------------------------------------|--------------------------------------|
-# | Decision computed in   | route() on the edge                | classify() node                      |
-# | Decision in state?     | No (uses fields already present)   | Yes (e.g. intent)                    |
-# | Edge function          | Does the real if/else              | Thin: return the stored field        |
-# | Use when               | Simple branch on known fields      | Save / log / reuse the choice        |
+# | Where logic lives      | Inside route() on the edge         | Inside a worker node (classify)      |
+# | State footprint        | Read only — no update              | Writes intent onto state             |
+# | Auditability           | Decision disappears after the hop  | Choice stays in state history        |
+# | Downstream reuse       | Later nodes cannot see why         | Later nodes read state["intent"]     |
+# | Edge complexity        | Thick — business / LLM logic       | Thin — return state["intent"]        |
 #
 # Limitation overcome: priority must already be on the ticket, and the desk
 # choice never lands in state. Free-text support questions need intent computed

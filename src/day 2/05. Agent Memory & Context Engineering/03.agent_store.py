@@ -61,12 +61,10 @@ load_dotenv()
 ORDERS = {"ORD-1": "shipped", "ORD-2": "pending"}
 store = InMemoryStore()  # Fresh store for agent demo
 
-
 @tool
 def lookup_order(order_id: str) -> str:
     """Look up order status by id."""
     return ORDERS.get(order_id, f"Order {order_id} not found")
-
 
 @tool
 def save_pref(key: str, value: str, runtime: ToolRuntime) -> str:
@@ -81,7 +79,6 @@ def save_pref(key: str, value: str, runtime: ToolRuntime) -> str:
     runtime.store.put(("customers", "cust-42"), key, {"value": value})
     return f"Saved {key}={value}"
 
-
 @tool
 def get_prefs(runtime: ToolRuntime) -> str:
     """
@@ -95,7 +92,6 @@ def get_prefs(runtime: ToolRuntime) -> str:
     if not items:
         return "No preferences saved."
     return ", ".join(f"{i.key}={i.value['value']}" for i in items)
-
 
 print("═" * 100)
 print("PART 2: Store + ToolRuntime in agent")
@@ -138,30 +134,3 @@ r3 = agent.invoke(
     config={"configurable": {"thread_id": "support-C"}},
 )
 print(f"  → {r3['messages'][-1].content}")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# KEY CONCEPTS
-# ════════════════════════════════════════════════════════════════════════════
-
-print("═" * 100)
-print("STORE vs CHECKPOINTER")
-print("═" * 100)
-print("| Feature | Checkpointer (Day 1) | Store (Day 2) |")
-print("|---------|----------------------|---------------|")
-print("| Scope | One thread_id | All threads (by namespace) |")
-print("| Data | Chat messages + state | Structured facts (key/value) |")
-print("| Lifetime | Thread duration | Permanent (until deleted) |")
-print("| Use case | Conversation continuity | User prefs, company policies |")
-print()
-print("WHEN TO USE STORE:")
-print("  ✓ Customer preferences (contact method, shipping address)")
-print("  ✓ Company policies (refund windows, shipping times)")
-print("  ✓ User profiles (VIP status, purchase history)")
-print("  ✓ Facts that span multiple conversations")
-print()
-print("WHEN TO USE CHECKPOINTER:")
-print("  ✓ Chat history for one support session")
-print("  ✓ Resuming interrupted conversations")
-print("  ✓ Multi-turn context within one thread")
-print("-" * 100)

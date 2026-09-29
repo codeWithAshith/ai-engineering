@@ -651,17 +651,52 @@ export const course = {
               "kind": "lesson",
               "title": "Why LangGraph",
               "n": "01",
-              "learn": "A chain is linear — A → B → C → stop. LangGraph is for a cycle, a branch, and shared state.",
+              "learn": "Every LangGraph app is a graph: START → middle → END. Same ORD-3 cancelled ticket three ways — only the graph can route.",
               "file": "01.why_langgraph.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
-                "**Concept:** a chain is a straight line. LangGraph is for when a ticket needs more: a **cycle** (go back), a **branch** (pick the next desk), **shared state** (many nodes read and write the same ticket).",
-                "**Limitation:** a chain can only do normalize → lookup → reply → stop. It cannot lookup → miss → lookup again → then stop.",
-                "**In class:** the same cancelled-order problem, three ways — LLM alone, a chain, then a graph."
+                "**Always START and END.** The elementary graph is one node P: send a prompt to an LLM, then stop. The middle can grow — more nodes, branches, loops — and it is still START … END.",
+                "**Approach 1 · LLM.** One invoke. Escalation lives in the system prompt. The model might escalate ORD-3. It might not. You have no path to force.",
+                "**Approach 2 · Chain.** You look up ORD-3 yourself, then `prompt | model | parser`. Linear A → B → C. No escalate desk vs normal desk.",
+                "**Approach 3 · LangGraph.** `normalize` writes status onto shared state. `route()` reads it: cancelled → `escalate`, else → `normal`. The file runs ORD-1 and ORD-3 on the same graph.",
+                "**Why a graph.** A real workflow is a series of decisions, memory updates, and tool calls. LangChain gives you the models, memory, and tools. It does not give you a clear way to organize them when there are many steps and conditions. LangGraph does that with a graph: a finite state machine. Think of it as a roadmap with directions and traffic rules.",
+                "**Built on LangChain.** Models, memory, and tools you already use drop into nodes. The difference is how you organize them: branching, retries, loops, parallel decisions, and multi-agent handoffs stay visible in the graph.",
+                "**Node.** One step. A function: call a model, run a tool, or process data. In the delivery analogy, Ravi picks up letters at the post office, or checks which house is next. One clear action.",
+                "**Edge.** The path between nodes. It says what happens next from the result of the last step. If house 1 is locked, the map sends Ravi to the next house. In the graph, that is a conditional edge.",
+                "**State.** The bag Ravi carries. Order id, status, notes from people he meets, the draft of the final report. The state schema is the input shape for every node and edge. It persists and evolves as the graph runs.",
+                "**What the graph gives you.** Loops and branches live in the graph, so you are not burying the flow in nested if/else. Pause and resume from a checkpoint, exactly where you left off. Insert a human checkpoint so someone can review or edit state before the next node. Stream tokens and intermediate results as nodes run. LangChain components and LCEL still work inside those nodes.",
+                "**In production.** Teams use this when the workflow has to stay correct under branching, retries, and oversight, and still be readable."
               ],
-              "snippet": "chain = prompt | model | parser\ngraph = StateGraph(TicketState)",
-              "sample": "Chain: one path, always.\nGraph: branch, retry, shared state.",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": [
+                    "Approach",
+                    "Path",
+                    "ORD-3 cancelled"
+                  ],
+                  "rows": [
+                    [
+                      "LLM",
+                      "one invoke",
+                      "Might escalate. No control."
+                    ],
+                    [
+                      "Chain",
+                      "lookup (you) then prompt | model | parser",
+                      "Cannot pick a desk from status."
+                    ],
+                    [
+                      "LangGraph",
+                      "START → normalize → escalate | normal → END",
+                      "route() sends it to escalate."
+                    ]
+                  ]
+                }
+              ],
+              "snippet": "graph.add_edge(START, \"normalize\")\ngraph.add_conditional_edges(\"normalize\", route)\ngraph.add_edge(\"escalate\", END)\ngraph.add_edge(\"normal\", END)",
+              "sample": "ORD-1: Order ORD-1 status: shipped.\nORD-3: Order ORD-3 is cancelled — escalating to specialist team.\nLLM  → no control\nChain → cannot route\nGraph → cancelled→escalate, shipped→normal",
               "demo": "graph",
               "graph": "why"
             },
@@ -690,15 +725,15 @@ export const course = {
               "kind": "lesson",
               "title": "Conditional edges",
               "n": "03",
-              "learn": "A route function reads the ticket and returns the next node name.",
+              "learn": "A route function reads the ticket and returns the next node name. Use it when the field is already on the ticket.",
               "file": "03.conditional_edges.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
                 "**Concept:** `add_conditional_edges(source, route_fn)` — `route_fn(state)` returns the next node name. Branching lives in that edge function.",
-                "**Limitation:** fixed edges always run normalize → enrich. High-priority tickets need the VIP desk; normal ones the standard desk.",
-                "**Example:** priority high → vip, else → standard (ORD-1 / ORD-2). Press Play, then switch **else**.",
-                "Still limited: the choice is not stored in state (hard to log). Free-text questions have no ready-made priority field. That is the next lesson."
+                "**Use when:** simple branch on known fields. Priority is already on the ticket. Logic lives in `route()`. State is only read.",
+                "**Limitation:** the decision disappears after the transition — harder to audit, and later nodes cannot see why this path was taken. That is a routing node — next lesson.",
+                "**Example:** priority high → vip, else → standard (ORD-1 / ORD-2). Press Play, then switch **else**."
               ],
               "snippet": "def route(state: TicketState) -> str:\n    return \"vip\" if state[\"priority\"] == \"high\" else \"standard\"\n\ngraph.add_conditional_edges(\"classify\", route)",
               "sample": "high: {'order_id': 'ORD-1', 'priority': 'high', 'desk': 'VIP desk: ORD-1 → shipped'}\nnormal: {'order_id': 'ORD-2', 'priority': 'normal', 'desk': 'Standard desk: ORD-2 → pending'}",
@@ -710,18 +745,55 @@ export const course = {
               "kind": "lesson",
               "title": "Routing nodes",
               "n": "04",
-              "learn": "A routing node writes the decision into state. The edge only reads it.",
+              "learn": "A routing node writes the decision into state. The edge stays thin. Use it when you need the choice in history and in later nodes.",
               "file": "04.routing_nodes.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
-                "**Concept:** a routing **node** writes a decision into state (intent). A thin conditional edge only reads that field. Use it when the choice should be stored, logged, or reused.",
-                "**Vs lesson 03:** a conditional edge computes the if/else on the edge and does not store it. A routing node runs `classify()`, writes `intent`, and the edge is `return state['intent']`.",
-                "**Limitation:** lesson 03 needed priority already on the ticket, and the desk choice never landed in state. Free-text questions need intent computed and stored.",
-                "**Example:** order / product / other desk. Still limited: plain fields overwrite — if several nodes each set `events=[]`, only the last list survives."
+                "**Where logic lives.** Pattern 1: inside `route()` on the edge. Pattern 2: inside a worker node (`classify`). The edge only reads.",
+                "**State footprint.** A pure conditional edge only reads. A routing node updates state — it saves `intent`.",
+                "**Audit and reuse.** After a pure edge, the decision disappears. You cannot log it, and later nodes cannot see why this path was taken. After `classify`, `intent` stays in history. Downstream nodes can read `state[\"intent\"]`.",
+                "**Edge complexity.** Pure edge is thick — business or LLM classification lives there. Routing node is thin: `return state[\"intent\"]`."
               ],
-              "snippet": "def classify(state):\n    return {\"intent\": \"order\"}  # or product / other\n\ngraph.add_conditional_edges(\"classify\", lambda s: s[\"intent\"])",
-              "sample": "Q: Status of ORD-1?\n  intent=order → Order desk: ORD-1 → shipped",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": [
+                    "Metric",
+                    "Pure conditional edge",
+                    "Routing node + thin edge"
+                  ],
+                  "rows": [
+                    [
+                      "Where logic lives",
+                      "Inside the edge function (route)",
+                      "Inside a worker node (classify)"
+                    ],
+                    [
+                      "State footprint",
+                      "No change. State is only read, not updated.",
+                      "State is updated. Saves the decision (intent) to state."
+                    ],
+                    [
+                      "Auditability & logging",
+                      "Harder. The decision disappears once the transition occurs.",
+                      "Easy. The routing choice remains in the state history."
+                    ],
+                    [
+                      "Downstream reuse",
+                      "Low. Later nodes cannot see why this path was taken.",
+                      "High. Downstream nodes can read state[\"intent\"] to alter their behavior."
+                    ],
+                    [
+                      "Edge complexity",
+                      "Thick. Contains the core business or LLM classification logic.",
+                      "Thin. Simply reads a pre-computed value (return state[\"intent\"])."
+                    ]
+                  ]
+                }
+              ],
+              "snippet": "def classify(state):\n    return {\"intent\": intent}  # routing NODE\n\ndef pick(state):\n    return state[\"intent\"]  # thin EDGE\n\ngraph.add_conditional_edges(\"classify\", pick)",
+              "sample": "Q: Status of ORD-1?\n  intent=order → Order desk: ORD-1 → shipped\nQ: Is the Mouse in stock?\n  intent=product → Product desk: check catalog stock.\nQ: Hello!\n  intent=other → Happy to help with orders or products.",
               "demo": "graph",
               "graph": "routing"
             },
@@ -737,7 +809,7 @@ export const course = {
               "notes": [
                 "**Concept:** nodes return a partial dict. A reducer decides how each field merges: `new = reducer(old, update)`. A plain field last-write-wins (`new = update`). `Annotated[int, add]` sums. `Annotated[list, add]` concatenates. `Annotated[list, add_messages]` appends chat messages (not raw list +).",
                 "**Limitation:** without Annotated, enrich's `events=['enriched']` replaces normalize's `events=['normalized']`, and `touch_count: 1` then `touch_count: 1` stays 1. The audit trail is lost.",
-                "**Example:** same path as lesson 02 — START → normalize → enrich → END for ` ord-1 `. Press Play on **with reducers**, then **plain overwrite**. Still scripted — the model cannot loop with tools yet."
+                "**Example:** same path as lesson 02 — START → normalize → enrich → END for ` ord-1 `. Press Play on **with reducers**, then **plain overwrite**. Still scripted — even a tool_call would not run. That desk is ToolNode."
               ],
               "snippet": "touch_count: Annotated[int, add]\nevents: Annotated[list[str], add]\nmessages: Annotated[list, add_messages]",
               "sample": "order_id (overwrite): ORD-1\nstatus / note:        shipped | ORD-1 is currently shipped\ntouch_count (sum):    2\nevents (concat):      ['normalized', 'enriched']\nmessages:             Need help with ORD-1 | ORD-1 is currently shipped",
@@ -745,22 +817,116 @@ export const course = {
               "graph": "reducers"
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/06.agent_loops.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/06.tool_node.py",
               "kind": "lesson",
-              "title": "Agent loops",
+              "title": "ToolNode",
               "n": "06",
-              "learn": "create_agent already ran this loop. Here you see the LangGraph it builds: model, tool, result, model, until it stops.",
-              "file": "06.agent_loops.py",
+              "learn": "ToolNode is the executor you wrote by hand. The graph decides when it runs. The agent loop is next — the model decides if, when, and which tools.",
+              "file": "06.tool_node.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
-                "**Same loop as Tool Calling.** An agent loop is model → tool → result → model, until the model answers without a tool call. That is right. `create_agent` is that executor. Behind the scenes it compiles this LangGraph: `chatbot` ↔ `ToolNode`, `tools_condition` as the stop. Part 1 is that graph with the lid off — not a new kind of loop.",
-                "**What is new:** you own the nodes. Part 2 replaces `tools_condition` with `should_continue` (`attempts ≥ 3` → `give_up`). Part 3 keeps `tools_condition` on chatbot, then `route_after_tools` retries a flaky lookup or goes to `fallback`. The shortcut does not give you those extra desks.",
-                "**Limitation:** a scripted normalize → enrich path cannot let the model decide when to look up ORD-1. `create_agent` already solved that. This lesson is so you can change the cycle. `recursion_limit=10` is still the last cap.",
-                "**Example:** Press Play on each part. Basic loop is `create_agent`. Break after 3 branches from **chatbot**, not from tools. Error handling retries, then fallback."
+                "**What it is.** In Tool Calling, `bind_tools` returned a call and you ran `lookup_order.invoke` plus a `ToolMessage`. `ToolNode(tools)` is that desk as a graph node: `add_node(\"tools\", ToolNode(tools))`. `create_agent` uses this node — not a different idea.",
+                "**Control flow.** This pattern is deterministic: START → chatbot → tools → END. The graph dictates when the tool runs. An agent loop is dynamic — the LLM decides if, when, and which tools to call.",
+                "**LLM responsibility.** Here the model only writes arguments. The graph executes. In the loop the model must reason, inspect outputs, and decide to stop.",
+                "**State and use.** Linear: one pass, sequential updates. Best for structured workflows. Cyclic message history and open-ended research wait for the next lesson.",
+                "**ToolNode vs tools_condition.** `ToolNode` is a node: it runs `tool_calls` and appends a `ToolMessage`. `tools_condition` is an edge: tool calls present means go to `tools`, none means `END`. It does not run Python. This lesson wires only `ToolNode` plus fixed edges: chatbot → tools → END. The graph always runs the tool, then stops, so there is no condition to check."
               ],
-              "snippet": "graph.add_conditional_edges(\"chatbot\", tools_condition)\ngraph2.add_conditional_edges(\"chatbot\", should_continue, {\"end\": END, \"tools\": \"tools\", \"give_up\": \"give_up\"})",
-              "sample": "PART 1: ORD-1 shipped (tools_condition)\nPART 2: attempts=3 → give_up\nPART 3: flaky lookup → retry, then fallback",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": [
+                    "Metric",
+                    "Tool node pattern",
+                    "Agent loop pattern"
+                  ],
+                  "rows": [
+                    [
+                      "Control flow",
+                      "Deterministic. The graph dictates when a tool runs based on pre-defined edges.",
+                      "Dynamic. The LLM decides if, when, and which tools to call sequentially."
+                    ],
+                    [
+                      "LLM responsibility",
+                      "Low. The LLM only generates the arguments; the graph executes it.",
+                      "High. The LLM must reason, call tools, inspect outputs, and decide to stop."
+                    ],
+                    [
+                      "State mutation",
+                      "Linear. Updates state attributes sequentially.",
+                      "Cyclic. Appends new tool logs to a message history array iteratively."
+                    ],
+                    [
+                      "Best used for",
+                      "Structured, predictable workflows (extract text, then query the database).",
+                      "Open-ended problem solving (research this topic, then summarize)."
+                    ]
+                  ]
+                }
+              ],
+              "snippet": "graph.add_node(\"tools\", ToolNode(tools))\ngraph.add_edge(\"chatbot\", \"tools\")\ngraph.add_edge(\"tools\", END)",
+              "sample": "AIMessage: tool_calls=lookup_order(ORD-1)\nToolMessage: shipped",
+              "demo": "graph",
+              "graph": "toolnode"
+            },
+            {
+              "id": "lesson:day 1/03. LangGraph Fundamentals/07.agent_loops.py",
+              "kind": "lesson",
+              "title": "Agent loops",
+              "n": "07",
+              "learn": "tools_condition sits on chatbot: if there are tool_calls, go to tools; if not, go to END.",
+              "file": "07.agent_loops.py",
+              "day": 1,
+              "module": "03. LangGraph Fundamentals",
+              "notes": [
+                "**tools_condition on chatbot.** After chatbot writes a message, this function reads it. If that message has `tool_calls`, the next node is `tools`. If it does not, the next node is `END`.",
+                "**The missing edge.** Lesson 06 always did chatbot → tools → END. Here the graph is `chatbot ↔ tools`. The ↑ result sends the ToolMessage back. Chatbot sees `shipped`, writes the reply with no calls, `tools_condition` sends you to END.",
+                "**create_agent is this graph.** Same two desks. You add the nodes. The shortcut compiles `chatbot` ↔ `ToolNode` with `tools_condition` as the stop.",
+                "**One example.** Status of ORD-1? Chatbot asks for the lookup, tools return `shipped`, chatbot answers in text, then `END`. If that second visit asks for another tool, the same check sends it back to `tools` instead of stopping on an unrun call.",
+                "**Both pieces.** `ToolNode` executes. `tools_condition` decides. Wire `ToolNode`, put `tools_condition` on the way out of chatbot, and add `tools → chatbot`. No tools at all means neither."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": [
+                    "After chatbot",
+                    "tools_condition sends you"
+                  ],
+                  "rows": [
+                    [
+                      "Last message has tool_calls",
+                      "tools"
+                    ],
+                    [
+                      "Last message has no tool_calls",
+                      "END"
+                    ]
+                  ]
+                },
+                {
+                  "type": "table",
+                  "headers": [
+                    "Situation",
+                    "What you wire"
+                  ],
+                  "rows": [
+                    [
+                      "The graph always runs a tool, then stops (lesson 06)",
+                      "ToolNode plus fixed edges: chatbot → tools → END"
+                    ],
+                    [
+                      "The model may call a tool, may call again, and must be the one that stops (this lesson)",
+                      "ToolNode plus tools_condition on the way out of chatbot, and tools → chatbot"
+                    ],
+                    [
+                      "No tools at all",
+                      "Neither"
+                    ]
+                  ]
+                }
+              ],
+              "snippet": "graph.add_conditional_edges(\"chatbot\", tools_condition)\ngraph.add_edge(\"tools\", \"chatbot\")",
+              "sample": "AIMessage: tool_calls=lookup_order(ORD-1)\nToolMessage: shipped\nAIMessage: The status of ORD-1 is shipped.",
               "demo": "graph",
               "graph": "loop",
               "evolution": {
@@ -785,36 +951,28 @@ export const course = {
                   },
                   {
                     "era": "Era 3",
-                    "years": "2023 Q3",
+                    "years": "2023 Q3 – now",
                     "name": "tools_condition",
-                    "what": "LangGraph routes chatbot → tools or END. The cycle is nodes and edges.",
-                    "flaw": "The built-in condition is basic — no retry limit or error desk of its own.",
-                    "shift": "Custom conditions on the same graph."
-                  },
-                  {
-                    "era": "Era 4",
-                    "years": "2024 – now",
-                    "name": "Break, retry, fallback",
-                    "what": "Custom conditions add attempt limits, error routing, and a give-up node.",
-                    "standard": "The loop is observable, you can stop it, and a tool error can take a different edge."
+                    "what": "LangGraph routes chatbot → tools or END. The cycle is nodes and edges. create_agent compiles this same graph.",
+                    "standard": "The loop is a graph you can inspect: chatbot ↔ ToolNode."
                   }
                 ],
-                "takeaway": "Modern loops are a graph you can inspect, cap, and route — not a hidden while True."
+                "takeaway": "An agent loop is a graph you can see — not a hidden while True."
               }
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/07.parallel_edges.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/08.parallel_edges.py",
               "kind": "lesson",
               "title": "Parallel fixed edges",
-              "n": "07",
-              "learn": "Linear is START → A → B. Parallel is two edges from START: A and B run at the same time, then merge waits.",
+              "n": "08",
+              "learn": "Merge waits. The fast branch does not start merge early. The slow one does not get skipped.",
               "notes": [
-                "**What it is:** linear is `START → A → B → END` (one after the other). Parallel is `START → A` **and** `START → B` — both run at the same time — then a **merge** node waits for both, then continues. That is two `add_edge` calls from START, not a loop and not `Send`.",
-                "**Rules:** both branches must finish before merge. The branches do not see each other's writes until merge (`check_tier` still uses the raw `order_id`). `notes` from both sides accumulate with `Annotated[list, add]`.",
-                "**Vs Send:** these edges are fixed in code. Map-reduce `Send` creates one worker per item at runtime — use that when you loop over a list of order ids, not here.",
-                "**When:** two independent checks (validate + lookup) that can run together. **Example:** normalize ORD-1 and look up VIP/standard, then merge. Press Play."
+                "**Join.** Both `normalize` and `check_tier` leave START at the same time, and both have an edge into `merge`. LangGraph treats that as a join: `merge` runs **once**, after **both** have finished.",
+                "**If one is faster.** The fast branch does not start `merge` early. The slow one does not get skipped. `merge` still waits.",
+                "**Branches are blind.** They do not see each other's writes until merge. `check_tier` still uses the raw `order_id`. `notes` accumulate with `Annotated[list, add]`.",
+                "**Vs Send.** These edges are fixed in code. Map-reduce `Send` creates one worker per item at runtime — use that when you loop over a list of order ids, not here."
               ],
-              "file": "07.parallel_edges.py",
+              "file": "08.parallel_edges.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "snippet": "graph.add_edge(START, \"normalize\")\ngraph.add_edge(START, \"check_tier\")\ngraph.add_edge(\"normalize\", \"merge\")\ngraph.add_edge(\"check_tier\", \"merge\")\ngraph.add_edge(\"merge\", END)",
@@ -823,73 +981,83 @@ export const course = {
               "graph": "parallel"
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/08.streaming.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/09.streaming.py",
               "kind": "lesson",
               "title": "Streaming",
-              "n": "08",
-              "learn": "updates is thinking per node. messages is the reply you send.",
+              "n": "09",
+              "learn": "Same question, four watches. No tools. Only stream_mode (or invoke) changes.",
               "notes": [
-                "**What streaming is:** `app.stream` yields events while the graph runs. Same START → chatbot → END; the mode is what you send to the user.",
-                "**`updates`:** the thinking room. Every node that runs sends `{node_name: partial update}`. This file only has `chatbot`, so you see `{\"chatbot\": {\"messages\": [...]}}`. Next lesson, `tools` sends thinking too.",
-                "**`messages`:** the final send. `(token_chunk, meta)` from the LLM — the typed answer the customer sees, not a state dict.",
-                "**`values`:** full ticket after that step (for a UI that re-renders). **`invoke()`:** no thinking, no typing — one finished ticket.",
-                "**Limitation:** one mode at a time. Next lesson lists both so thinking and the reply go out on the same stream."
+                "**The example.** Graph is `START → chatbot → END`. No tools — we are not looking up ORD-1. Question: *Write one sentence: order ORD-1 has shipped.* The file runs that question four times. Only how you watch it changes.",
+                "**updates.** print the dict. You see `{'chatbot': ['AIMessage: Order ORD-1 has shipped.']}`. The HumanMessage is not in this dict — only what chatbot just returned.",
+                "**values.** print types. First event `msgs=1 ['HumanMessage']`. After chatbot `msgs=2 ['HumanMessage', 'AIMessage']`. Full ticket each step, so a UI can re-render.",
+                "**messages vs invoke().** Both give only the last AI response. The words are the same: `Order ORD-1 has shipped.` The only difference is how that reply arrives. `messages` streams it token by token, like a typing effect. `invoke()` waits, then dumps the whole sentence at once. Neither one shows the HumanMessage or the ticket. That is what `updates` and `values` are for."
               ],
               "blocks": [
                 {
                   "type": "table",
-                  "headers": ["Mode", "Each event is", "What you send the user"],
+                  "headers": ["Mode", "Each event is", "When to use"],
                   "rows": [
-                    ["`updates`", "`{node_name: partial update}`", "Thinking room: this node just ran"],
-                    ["`messages`", "`(token_chunk, meta)` from the LLM", "The final reply, token by token"],
-                    ["`values`", "full TicketState after that step", "Not a chat bubble — re-render the whole ticket"],
-                    ["`invoke()`", "one final state (not streaming)", "Nothing until the ticket is done"]
+                    ["`updates`", "`{node_name: partial update}`", "Debug / progress: which node just wrote what"],
+                    ["`values`", "full TicketState after that step", "UI that re-renders the whole ticket each step"],
+                    ["`messages`", "`(token_chunk, meta)` from the LLM", "Last AI reply, typing effect"],
+                    ["`invoke()`", "one final state (not streaming)", "Same last AI reply, dumped once"]
+                  ]
+                },
+                {
+                  "type": "table",
+                  "headers": ["Mode", "How to see the difference"],
+                  "rows": [
+                    ["`updates`", "{'chatbot': ['AIMessage: Order ORD-1 has shipped.']} — HumanMessage is not here"],
+                    ["`values`", "msgs=1 ['HumanMessage'] then msgs=2 ['HumanMessage', 'AIMessage']"],
+                    ["`messages`", "last AI reply only — typed token by token"],
+                    ["`invoke()`", "same last AI reply — one dump, no typing"]
                   ]
                 }
               ],
-              "file": "08.streaming.py",
+              "file": "09.streaming.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
-              "snippet": "for event in app.stream(inputs, stream_mode=\"updates\"):\n    print(event)  # {'chatbot': {'messages': [...]}}\nfor state in app.stream(inputs, stream_mode=\"values\"):\n    print(len(state[\"messages\"]))  # 1 → 2\nfor chunk, _meta in app.stream(inputs, stream_mode=\"messages\"):\n    print(getattr(chunk, \"content\", \"\"), end=\"\")",
-              "sample": "updates: {'chatbot': {'messages': [...]}}\nvalues:  keys: ['messages'] msgs: 2\nmessages: ORD-1 shipped\ninvoke(): one finished ticket",
+              "snippet": "QUESTION = \"Write one sentence: order ORD-1 has shipped.\"\nfor event in app.stream(inputs, stream_mode=\"updates\"):\n    print(event)  # {'chatbot': ['AIMessage: ...']}\nfor state in app.stream(inputs, stream_mode=\"values\"):\n    print(len(state[\"messages\"]))  # 1 then 2\nfor chunk, _meta in app.stream(inputs, stream_mode=\"messages\"):\n    print(getattr(chunk, \"content\", \"\"), end=\"\")\nprint(app.invoke(inputs)[\"messages\"][-1].content)",
+              "sample": "Question: Write one sentence: order ORD-1 has shipped.\n1) updates   {'chatbot': ['AIMessage: Order ORD-1 has shipped.']}\n2) values    msgs=1 ['HumanMessage']\n             msgs=2 ['HumanMessage', 'AIMessage']\n3) messages  Order ORD-1 has shipped.  (typing)\n4) invoke()  Order ORD-1 has shipped.  (same reply, no typing)",
               "demo": "graph",
               "graph": "streaming"
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/09.thinking_stream.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/10.thinking_stream.py",
               "kind": "lesson",
               "title": "Thinking stream",
-              "n": "09",
-              "learn": "One stream can show which node ran and the answer tokens at the same time.",
+              "n": "10",
+              "learn": "Way 1 labels which node ran. Way 2 is a smaller model that only writes a thought.",
               "notes": [
-                "**What it is:** same two streams as lesson 08, now together on the agent loop. `stream_mode=['updates', 'messages']` makes each event `(mode, data)`.",
-                "**`updates`:** thinking room. Every node reports: `[thinking] step=chatbot`, then `step=tools`.",
-                "**`messages`:** the final send. Token chunks of the typed answer.",
-                "**Limitation:** one mode alone cannot show tool progress and live answer text. Still limited: each run starts fresh — no thread memory."
+                "**What it is:** same two streams as lesson 09, now together on the agent loop. `stream_mode=['updates', 'messages']` makes each event `(mode, data)`.",
+                "**Way 1 — graph steps.** `stream_mode=['updates', 'messages']`. `updates` prints `[step] chatbot` then `[step] tools`. Those are node names, not thoughts. `messages` types the last AI reply.",
+                "**Way 2 — a separate small call mimics the thought.** Same `gpt-oss-20b`, no tools, asked for one short thought about the next action. It must not invent `shipped`. The live status still comes from Way 1, where `tools` runs `lookup_order`.",
+                "**Limitation.** One mode alone cannot show tool progress and live answer text. Way 2 does not tell you that `tools` ran. Each run starts fresh — no thread memory."
               ],
               "blocks": [
                 {
                   "type": "table",
-                  "headers": ["Mode in the list", "Each event is", "What you send the user"],
+                  "headers": ["Watch", "Each event is", "What you send the user"],
                   "rows": [
-                    ["`updates`", "`{node_name: partial update}`", "Thinking room: `[thinking] step=chatbot` then `step=tools`"],
-                    ["`messages`", "`(token_chunk, meta)`", "The final reply, token by token"]
+                    ["`updates`", "`{node_name: partial update}`", "Way 1: `[step] chatbot` then `[step] tools` — node names, not thoughts"],
+                    ["`messages`", "`(token_chunk, meta)`", "Way 1: last AI reply, token by token"],
+                    ["separate call, no tools", "one thought about the next action", "Way 2: a mimic. It does not look up ORD-1."]
                   ]
                 }
               ],
-              "file": "09.thinking_stream.py",
+              "file": "10.thinking_stream.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
-              "snippet": "for mode, event in app.stream(ticket, stream_mode=[\"updates\", \"messages\"]):\n    if mode == \"updates\":\n        print(\"[thinking] step=\", next(iter(event)))\n    elif mode == \"messages\":\n        print(getattr(event[0], \"content\", \"\"), end=\"\")",
-              "sample": "[thinking] step=chatbot\n[thinking] step=tools\nThe status of ORD-1 is shipped",
+              "snippet": "for mode, event in app.stream(ticket, stream_mode=[\"updates\", \"messages\"]):\n    if mode == \"updates\":\n        print(\"[thinking] step=\", next(iter(event)))\n    elif mode == \"messages\":\n        print(getattr(event[0], \"content\", \"\"), end=\"\")\n\nthink = init_chat_model(model=\"groq:openai/gpt-oss-20b\", reasoning_format=\"parsed\")\nfor chunk in think.stream([HumanMessage(content=\"One sentence: order ORD-1 has shipped.\")]):\n    scratch = chunk.additional_kwargs.get(\"reasoning_content\") or \"\"\n    if scratch:\n        print(scratch, end=\"\")\n    if chunk.content:\n        print(chunk.content, end=\"\")",
+              "sample": "WAY 1\n[step] chatbot\n[step] tools\nThe status of ORD-1 is shipped\n\nWAY 2  separate call, no tools\n[thinking] I should look up ORD-1 before answering.",
               "demo": "graph",
               "graph": "thinking"
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/10.persistence.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/11.persistence.py",
               "kind": "lesson",
               "title": "Persistence",
-              "n": "10",
+              "n": "11",
               "learn": "You pass a config dict every invoke. thread_id is the conversation. checkpoint_id is a frame. There is no config_id.",
               "notes": [
                 "**MemorySaver is already the saver.** Compile with `checkpointer=MemorySaver()`. Checkpoints live in RAM, keyed by `thread_id`. Evolution (How It Evolved) is the types story: no memory → session dicts → MemorySaver → SqliteSaver / time travel.",
@@ -920,7 +1088,7 @@ export const course = {
               ],
               "snippet": "thread = {\"configurable\": {\"thread_id\": \"support-1\"}}\napp.invoke(turn1, config=thread)  # pass the dict every time\napp.invoke(turn2, config=thread)  # latest frame\nsnap = app.get_state(thread)      # [0]; copy checkpoint_id to pin",
               "sample": "same thread: ORD-1\nnew thread: (does not know ORD-1)\n[0] latest  [1] older  [2] older",
-              "file": "10.persistence.py",
+              "file": "11.persistence.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "demo": "graph",
@@ -965,12 +1133,12 @@ export const course = {
               }
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/11.runnable_config.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/12.runnable_config.py",
               "kind": "lesson",
               "title": "RunnableConfig extras (recursion_limit, metadata)",
-              "n": "11",
+              "n": "12",
               "learn": "Same config dict. No config_id. recursion_limit and metadata ride along this invoke.",
-              "file": "11.runnable_config.py",
+              "file": "12.runnable_config.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
@@ -996,12 +1164,12 @@ export const course = {
               "graph": "config"
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/12.durable_checkpointers.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/13.durable_checkpointers.py",
               "kind": "lesson",
               "title": "Durable checkpointers",
-              "n": "12",
+              "n": "13",
               "learn": "SqliteSaver is the same checkpointer API as MemorySaver, on disk.",
-              "file": "12.durable_checkpointers.py",
+              "file": "13.durable_checkpointers.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
@@ -1025,19 +1193,20 @@ export const course = {
               "graph": "durable"
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/13.get_state_update_state.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/14.get_state_update_state.py",
               "kind": "lesson",
               "title": "get_state and update_state",
-              "n": "13",
+              "n": "14",
               "learn": "A human reads get_state, writes update_state, then invoke(None) resumes from .next.",
-              "file": "13.get_state_update_state.py",
+              "file": "14.get_state_update_state.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
                 "**Human on the checkpoint.** Persistence cannot fix a wrong order id. Organization: `get_state` → human interprets → `update_state` → `invoke(None)` resumes from `.next`. This is not `interrupt()` yet — that pause is Building Agents.",
                 "**Where it runs:** `as_node='__start__'` on `update_state` tells the checkpointer the write came from START, so `.next` is `enrich`. Resume is calculated from that — you do not send the ticket again.",
                 "**The graph:** START → enrich → END. Example: ran ORD-1 (shipped); human meant ORD-2; resume → pending.",
-                "**Still limited:** lookup is stuck in one flat graph — that is subgraphs."
+                "**Still limited:** lookup is stuck in one flat graph — that is subgraphs.",
+                "**Vs interrupt.** Both use a checkpointer and a person. Here the person is outside the graph, after the run, correcting `order_id`. `interrupt()` pauses during the run, inside a tool, and `Command(resume=...)` is an approval, not a field edit. A wrong id found while a refund is paused needs both."
               ],
               "blocks": [
                 {
@@ -1049,6 +1218,16 @@ export const course = {
                     ["3 `update_state(..., as_node='__start__')`", "you", "Write the correction. `.next` becomes enrich."],
                     ["4 `invoke(None, config)`", "the graph", "Resume from `.next`. Do not pass the ticket again."]
                   ]
+                },
+                {
+                  "type": "table",
+                  "headers": ["", "This lesson", "interrupt() — human in the loop"],
+                  "rows": [
+                    ["When the person acts", "After the run, because the id was wrong", "During the run, before the refund"],
+                    ["What they change", "State (`order_id`)", "The resume value (`True` / `False`)"],
+                    ["How it continues", "`invoke(None, config)`", "`Command(resume=...)` on the same thread"],
+                    ["Graph shape", "START → enrich → END. Never pauses.", "chatbot ↔ tools, pause inside one tool"]
+                  ]
                 }
               ],
               "snippet": "print(app.get_state(config).values)\napp.update_state(config, {\"order_id\": \"ORD-2\"}, as_node=\"__start__\")\nprint(app.invoke(None, config=config))",
@@ -1057,12 +1236,12 @@ export const course = {
               "graph": "state"
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/14.subgraphs.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/15.subgraphs.py",
               "kind": "lesson",
               "title": "Subgraphs",
-              "n": "14",
+              "n": "15",
               "learn": "A subgraph is a graph used as one node in a parent graph.",
-              "file": "14.subgraphs.py",
+              "file": "15.subgraphs.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
@@ -1076,12 +1255,12 @@ export const course = {
               "graph": "subgraph"
             },
             {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/15.map_reduce_send.py",
+              "id": "lesson:day 1/03. LangGraph Fundamentals/16.map_reduce_send.py",
               "kind": "lesson",
               "title": "Map-reduce with Send",
-              "n": "15",
+              "n": "16",
               "learn": "Send starts one branch per item. A reducer joins the results.",
-              "file": "15.map_reduce_send.py",
+              "file": "16.map_reduce_send.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
@@ -1120,9 +1299,11 @@ export const course = {
               "day": 1,
               "module": "04. Building Agents with LangGraph",
               "notes": [
-                "**Three places.** LLM app: one prompt, no live data (FAQs). Workflow: you already know the steps (invoices, ETL, always normalize → lookup → format). Agent: the model must choose the next tool.",
-                "**Build an agent** for order support — status, list, refund, tracking — the path is not known. **Do not** when the whiteboard already has a chain.",
-                "**Same question:** refund ORD-1. Press each place. An agent that always calls one tool in one order is a workflow with extra ways to fail."
+                "**No program.** This is a decision. The page is the lesson.",
+                "**LLM app.** One prompt, no live data. FAQs and policy. “Can I get a refund for ORD-1?” — the model guesses. It cannot see the order table.",
+                "**Workflow.** You already know the steps: invoices, ETL, always normalize → lookup → format. The same question always runs every step. It cannot skip lookup when the customer only says hello.",
+                "**Agent.** The model chooses the next tool. Order support — status, list, refund, tracking — the path is not known up front. It may call lookup, the refund policy, both, or neither.",
+                "**Whiteboard test.** If you can write the steps, do not start with an agent. An agent that always calls one tool in one order is a workflow with extra ways to fail."
               ],
               "sample": "Refund ORD-1?\nLLM app: guesses — no live data\nworkflow: always lookup, then format\nagent: the model picks lookup, refund, or both",
               "demo": "graph",
@@ -1137,11 +1318,24 @@ export const course = {
               "notes": [
                 "**Where the person sits:** inside `request_refund`, on the `tools` node. The compiled mermaid is still chatbot ⇄ tools — the human is not a new node. Lookup still runs.",
                 "**Resume:** `Command(resume=True)` on the same `thread_id`. You do not send the question again.",
-                "**Still limited:** only that tool pauses. Approving any tool at the boundary, or fixing a wrong id while paused, is next."
+                "**Still limited:** only that tool pauses. Approving any tool at the boundary, or fixing a wrong id while paused, is next.",
+                "**Vs get_state.** Both use a checkpointer and a person. Lesson 14 edits a finished ticket: `get_state`, `update_state` writes `order_id`, `invoke(None)` runs enrich again. Here the person is inside `request_refund`. `Command(resume=True)` approves. It does not edit a field. A wrong id found while this refund is paused needs both."
               ],
               "file": "02.human_in_the_loop.py",
               "day": 1,
               "module": "04. Building Agents with LangGraph",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["", "get_state / update_state", "This lesson"],
+                  "rows": [
+                    ["When the person acts", "After the run, because the id was wrong", "During the run, before the refund"],
+                    ["What they change", "State (`order_id`)", "The resume value (`True` / `False`)"],
+                    ["How it continues", "`invoke(None, config)`", "`Command(resume=...)` on the same thread"],
+                    ["Graph shape", "START → enrich → END. Never pauses.", "chatbot ↔ tools, pause inside one tool"]
+                  ]
+                }
+              ],
               "snippet": "approved = interrupt({\"please_approve\": f\"refund {order_id}\", \"order\": order_id})\ndone = app.invoke(Command(resume=True), config=cfg)",
               "sample": "status of ORD-1: shipped (no pause)\nrefund ORD-1: paused, then approved",
               "demo": "graph",
@@ -1244,64 +1438,6 @@ export const course = {
               "sample": "refund question → refund agent\ntracking question → tracking agent\nhello → general agent",
               "demo": "graph",
               "graph": "handoff"
-            },
-            {
-              "id": "lesson:day 1/04. Building Agents with LangGraph/06.debugging_agents.py",
-              "kind": "lesson",
-              "title": "Debugging agents",
-              "n": "06",
-              "learn": "When an agent fails, name which of the four it is.",
-              "notes": [
-                "**Concept:** agents fail in four predictable ways. Name which one, then look.",
-                "**Failures:** wrong tool (or none). A loop that never stops. A reply that ignores the tool result. Arguments in the wrong shape.",
-                "**Look at:** `print(msg.tool_calls)`, `stream(mode=\"updates\")`, `get_state` while paused, `draw_mermaid` of the compiled graph.",
-                "**Example:** vague docstrings confuse the model; a tool that always errors hits `recursion_limit`. Press Play on each failure."
-              ],
-              "file": "06.debugging_agents.py",
-              "day": 1,
-              "module": "04. Building Agents with LangGraph",
-              "snippet": "for event in app.stream(inputs, stream_mode=\"updates\"):\n    print(next(iter(event)), event)",
-              "sample": "AIMessage tool_calls lookup_order\nToolMessage shipped\nAIMessage ignored the tool and guessed",
-              "demo": "graph",
-              "graph": "debug",
-              "evolution": {
-                "title": "How the loop became a glass box",
-                "subtitle": "From printf to stream, get_state, and draw_mermaid",
-                "eras": [
-                  {
-                    "era": "Era 1",
-                    "years": "2022",
-                    "name": "Printf and guesswork",
-                    "what": "You printed messages and hoped you could see why the agent called the wrong tool.",
-                    "flaw": "Hours lost. No map of which node ran.",
-                    "shift": "A ready-made executor."
-                  },
-                  {
-                    "era": "Era 2",
-                    "years": "2023 Q1",
-                    "name": "AgentExecutor was opaque",
-                    "what": "The loop ran, you got an answer. Failures were “the agent did something.”",
-                    "flaw": "You could not see inside the loop.",
-                    "shift": "Stream node transitions."
-                  },
-                  {
-                    "era": "Era 3",
-                    "years": "2023 Q3",
-                    "name": "LangGraph streaming",
-                    "what": "stream(mode='updates') shows which node just ran. The cycle is visible.",
-                    "flaw": "Streaming alone does not show a paused ticket or the planned tool args.",
-                    "shift": "Inspect and draw the graph."
-                  },
-                  {
-                    "era": "Era 4",
-                    "years": "2024 – now",
-                    "name": "get_state, stream, draw_mermaid",
-                    "what": "Print tool_calls. Stream updates. get_state while paused. Draw the mermaid of the compiled graph.",
-                    "standard": "Name the failure — wrong tool, infinite loop, ignored result, bad args — then look at that place."
-                  }
-                ],
-                "takeaway": "A modern graph is a glass box. recursion_limit turns an infinite loop into a stop you can see."
-              }
             }
           ]
         }
@@ -1436,10 +1572,10 @@ export const course = {
               "module": "04. Advanced Tool Patterns",
               "snippet": "@wrap_model_call\ndef tools_for_role(request, handler):\n    return handler(request.override(tools=tools_for(request.runtime.context.role)))",
               "sample": "agent: ORD-1 is shipped.\ncustomer: no lookup tool on this call"
-            }
-          ]
-        },
-        {
+                }
+              ]
+            },
+            {
           "id": "module:day 2/05. Agent Memory & Context Engineering",
           "title": "05. Agent Memory & Context Engineering",
           "items": [
@@ -1941,8 +2077,72 @@ export const course = {
               "sample": "refund question retrieved refund-policy.md\nanswer flagged as grounded"
             }
           ]
+        },
+        {
+          "id": "module:day 2/08. Debugging Agents",
+          "title": "08. Debugging Agents",
+          "items": [
+            {
+              "id": "lesson:day 2/08. Debugging Agents/01.debugging_agents.py",
+              "kind": "lesson",
+              "title": "Debugging agents",
+              "n": "01",
+              "learn": "When an agent fails, name which of the four it is.",
+              "notes": [
+                "**Concept:** agents fail in four predictable ways. Name which one, then look.",
+                "**Failures:** wrong tool (or none). A loop that never stops. A reply that ignores the tool result. Arguments in the wrong shape.",
+                "**Look at:** `print(msg.tool_calls)`, `stream(mode=\"updates\")`, `get_state` while paused, `draw_mermaid` of the compiled graph.",
+                "**Example:** vague docstrings confuse the model; a tool that always errors hits `recursion_limit`. Press Play on each failure."
+              ],
+              "file": "01.debugging_agents.py",
+              "day": 2,
+              "module": "08. Debugging Agents",
+              "snippet": "for event in app.stream(inputs, stream_mode=\"updates\"):\n    print(next(iter(event)), event)",
+              "sample": "AIMessage tool_calls lookup_order\nToolMessage shipped\nAIMessage ignored the tool and guessed",
+              "demo": "graph",
+              "graph": "debug",
+              "evolution": {
+                "title": "How the loop became a glass box",
+                "subtitle": "From printf to stream, get_state, and draw_mermaid",
+                "eras": [
+                  {
+                    "era": "Era 1",
+                    "years": "2022",
+                    "name": "Printf and guesswork",
+                    "what": "You printed messages and hoped you could see why the agent called the wrong tool.",
+                    "flaw": "Hours lost. No map of which node ran.",
+                    "shift": "A ready-made executor."
+                  },
+                  {
+                    "era": "Era 2",
+                    "years": "2023 Q1",
+                    "name": "AgentExecutor was opaque",
+                    "what": "The loop ran, you got an answer. Failures were “the agent did something.”",
+                    "flaw": "You could not see inside the loop.",
+                    "shift": "Stream node transitions."
+                  },
+                  {
+                    "era": "Era 3",
+                    "years": "2023 Q3",
+                    "name": "LangGraph streaming",
+                    "what": "stream(mode='updates') shows which node just ran. The cycle is visible.",
+                    "flaw": "Streaming alone does not show a paused ticket or the planned tool args.",
+                    "shift": "Inspect and draw the graph."
+                  },
+                  {
+                    "era": "Era 4",
+                    "years": "2024 – now",
+                    "name": "get_state, stream, draw_mermaid",
+                    "what": "Print tool_calls. Stream updates. get_state while paused. Draw the mermaid of the compiled graph.",
+                    "standard": "Name the failure — wrong tool, infinite loop, ignored result, bad args — then look at that place."
+                  }
+                ],
+                "takeaway": "A modern graph is a glass box. recursion_limit turns an infinite loop into a stop you can see."
+              }
+            }
+          ]
+                }
+              ]
+            }
+          ]
         }
-      ]
-    }
-  ]
-}

@@ -21,7 +21,8 @@
 #
 # Example: same ticket path normalize → enrich for ORD-1, plus touch_count /
 # events / messages that accumulate across both nodes.
-# Still limited: the path is scripted — the model cannot call tools in a loop.
+# Still limited: the path is scripted. Even if the model returned tool_calls,
+# nothing on this graph would run them. That desk is ToolNode.
 
 from operator import add
 from typing import Annotated, TypedDict

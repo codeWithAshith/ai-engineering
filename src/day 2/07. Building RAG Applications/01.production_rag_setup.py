@@ -39,7 +39,6 @@ from langchain_core.documents import Document
 
 DATA = Path(__file__).parent.parent / "06. RAG Fundamentals" / "data"
 
-
 def ingest_directory(folder: Path) -> list[Document]:
     """
     Scan folder for .txt files → list[Document] with metadata.
@@ -59,7 +58,6 @@ def ingest_directory(folder: Path) -> list[Document]:
         )
     return out
 
-
 docs = ingest_directory(DATA)
 
 print("═" * 100)
@@ -78,7 +76,6 @@ print("-" * 100)
 # ════════════════════════════════════════════════════════════════════════════
 # PART 2: Parse sections (optional, for structured docs)
 # ════════════════════════════════════════════════════════════════════════════
-
 
 def parse_sections(path: Path) -> list[Document]:
     """
@@ -105,7 +102,6 @@ def parse_sections(path: Path) -> list[Document]:
             )
         )
     return docs_out
-
 
 parsed = []
 for path in sorted(DATA.glob("*.txt")):
@@ -184,36 +180,5 @@ print()
 print("Test query:")
 hits = retriever.invoke("refund window days")
 for d in hits:
-    preview = d.page_content[:80].replace('\n', ' ')
+    preview = d.page_content[:80].replace("\n", " ")
     print(f"  [{d.metadata['source']}] {preview}...")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# PRODUCTION PATTERNS
-# ════════════════════════════════════════════════════════════════════════════
-
-print("═" * 100)
-print("PRODUCTION RAG SETUP PATTERNS")
-print("═" * 100)
-print()
-print("PATTERN 1: Simple folder ingestion")
-print("  docs = ingest_directory(folder)")
-print("  chunks = splitter.split_documents(docs)")
-print("  retriever = store.from_documents(chunks).as_retriever()")
-print()
-print("PATTERN 2: Section-aware chunking")
-print("  sections = [parse_sections(p) for p in folder.glob('*.txt')]")
-print("  chunks = splitter.split_documents(sections)")
-print("  retriever = store.from_documents(chunks).as_retriever()")
-print()
-print("PATTERN 3: Multi-format ingestion")
-print("  from langchain_community.document_loaders import PDFLoader, CSVLoader")
-print("  docs = PDFLoader(pdf_path).load() + CSVLoader(csv_path).load()")
-print("  chunks = splitter.split_documents(docs)")
-print("  retriever = store.from_documents(chunks).as_retriever()")
-print()
-print("NEXT LESSONS:")
-print("  02. prompt_composition.py  → Inject context into LLM prompts")
-print("  03. no_result_handling.py  → Handle empty retrieval gracefully")
-print("  04. source_attribution.py  → Link answers to source documents")
-print("-" * 100)

@@ -1,4 +1,4 @@
-# 06 — Debugging agents
+# 01 — Debugging agents
 #
 # Concept: agents fail in predictable ways. Learn to diagnose common issues.
 #
