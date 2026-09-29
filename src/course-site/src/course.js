@@ -1435,33 +1435,46 @@ export const course = {
       "title": "Day 2",
       "groups": [
         {
-          "id": "module:day 2/04. Middleware",
-          "title": "04. Middleware",
+          "id": "module:day 2/04.1 Middleware",
+          "title": "04.1 Middleware",
           "items": [
             {
-              "id": "lesson:day 2/04. Middleware/01.default_middleware.py",
+              "id": "lesson:day 2/04.1 Middleware/01.default_middleware.py",
               "kind": "lesson",
               "title": "Default middleware",
               "n": "01",
               "learn": "Middleware is a wrapper in a list. The agent function stays the same.",
               "notes": [
-                "A tool that raises becomes an error message the model can read. `ToolErrorMiddleware` does that.",
-                "A run that calls tools too many times stops. A run that calls the model too many times stops. Those are the two limits.",
-                "A person approving a write is the next lesson. It is not one of these guards."
+                "**The list.** You pass middleware on `create_agent`. The agent function does not change.",
+                "**A.** `ToolErrorMiddleware` turns a raised error into a tool message. ORD-999 is not in ORDERS. The model reads `ERROR`, it does not crash.",
+                "**B.** `ToolCallLimitMiddleware(run_limit=1)` stops a second tool call. Ping twice raises `ToolCallLimitExceededError`.",
+                "**C.** `ModelCallLimitMiddleware(run_limit=1)` allows the plan, then blocks the model call after the tool. Status of ORD-1 raises `ModelCallLimitExceededError`. A person approving a write is the next lesson."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Wrapper", "ORD example"],
+                  "rows": [
+                    ["ToolErrorMiddleware", "ORD-999 raises → the model gets an error tool message"],
+                    ["ToolCallLimitMiddleware", "run_limit=1, ping twice → ToolCallLimitExceededError"],
+                    ["ModelCallLimitMiddleware", "run_limit=1, lookup then reply → ModelCallLimitExceededError"]
+                  ]
+                }
               ],
               "file": "01.default_middleware.py",
               "day": 2,
-              "module": "04. Middleware",
-              "snippet": "create_agent(model, tools=[lookup_order], middleware=[ToolErrorMiddleware()])",
-              "sample": "ORD-999 raises\nmodel receives an error ToolMessage and replies"
+              "module": "04.1 Middleware",
+              "snippet": "middleware=[\n    ToolErrorMiddleware(on_error=lambda exc, _req: f\"ERROR: {exc}\"),\n    ToolCallLimitMiddleware(run_limit=1, exit_behavior=\"error\"),\n    ModelCallLimitMiddleware(run_limit=1, exit_behavior=\"error\"),\n]",
+              "sample": "A) ORD-999 → ERROR tool message, model replies\nB) caught: ToolCallLimitExceededError\nC) caught: ModelCallLimitExceededError",
+              "demo": "graph",
+              "graph": "mw01"
             },
             {
-              "id": "lesson:day 2/04. Middleware/02.human_middleware.py",
+              "id": "lesson:day 2/04.1 Middleware/02.human_middleware.py",
               "kind": "lesson",
               "title": "A person approves the write",
               "n": "02",
               "learn": "One question: set ORD-1 to delivered. The write waits until a person approves.",
-              "demo": "human-pause",
               "notes": [
                 "Ask to change the status. `HumanInTheLoopMiddleware` pauses before `update_order_status` runs.",
                 "The thread sits in `InMemorySaver` until the resume says approve.",
@@ -1469,12 +1482,14 @@ export const course = {
               ],
               "file": "02.human_middleware.py",
               "day": 2,
-              "module": "04. Middleware",
+              "module": "04.1 Middleware",
               "snippet": "HumanInTheLoopMiddleware(interrupt_on={\"update_order_status\": True})",
-              "sample": "paused: true\nafter approve: ORD-1 is delivered"
+              "sample": "paused: true\nafter approve: ORD-1 is delivered",
+              "demo": "human-pause",
+              "graph": "mw02"
             },
             {
-              "id": "lesson:day 2/04. Middleware/03.custom_middleware.py",
+              "id": "lesson:day 2/04.1 Middleware/03.custom_middleware.py",
               "kind": "lesson",
               "title": "Custom middleware",
               "n": "03",
@@ -1486,12 +1501,14 @@ export const course = {
               ],
               "file": "03.custom_middleware.py",
               "day": 2,
-              "module": "04. Middleware",
+              "module": "04.1 Middleware",
               "snippet": "@wrap_tool_call\ndef audit(request, handler):\n    print(request.tool_call)\n    return handler(request)",
-              "sample": "lookup_order ORD-1\nshipped"
+              "sample": "lookup_order ORD-1\nshipped",
+              "demo": "graph",
+              "graph": "mw03"
             },
             {
-              "id": "lesson:day 2/04. Middleware/04.agent_context.py",
+              "id": "lesson:day 2/04.1 Middleware/04.agent_context.py",
               "kind": "lesson",
               "title": "Agent context",
               "n": "04",
@@ -1503,12 +1520,14 @@ export const course = {
               ],
               "file": "04.agent_context.py",
               "day": 2,
-              "module": "04. Middleware",
+              "module": "04.1 Middleware",
               "snippet": "agent.invoke({\"messages\": [...]}, context={\"role\": \"agent\", \"user_id\": \"u1\"})",
-              "sample": "who_am_i: agent u1"
+              "sample": "who_am_i: agent u1",
+              "demo": "graph",
+              "graph": "mw04"
             },
             {
-              "id": "lesson:day 2/04. Middleware/06.tool_governance.py",
+              "id": "lesson:day 2/04.1 Middleware/06.tool_governance.py",
               "kind": "lesson",
               "title": "Tool governance",
               "n": "06",
@@ -1520,12 +1539,14 @@ export const course = {
               ],
               "file": "06.tool_governance.py",
               "day": 2,
-              "module": "04. Middleware",
+              "module": "04.1 Middleware",
               "snippet": "if request.runtime.context.role != \"agent\":\n    return \"ERROR: not allowed\"",
-              "sample": "viewer + issue_refund → blocked\nagent + issue_refund → allowed"
+              "sample": "viewer + issue_refund → blocked\nagent + issue_refund → allowed",
+              "demo": "graph",
+              "graph": "mw06"
             },
             {
-              "id": "lesson:day 2/04. Middleware/07.dynamic_prompt.py",
+              "id": "lesson:day 2/04.1 Middleware/07.dynamic_prompt.py",
               "kind": "lesson",
               "title": "Dynamic prompt",
               "n": "07",
@@ -1537,12 +1558,14 @@ export const course = {
               ],
               "file": "07.dynamic_prompt.py",
               "day": 2,
-              "module": "04. Middleware",
+              "module": "04.1 Middleware",
               "snippet": "@dynamic_prompt\ndef role_prompt(request):\n    return prompt_for(request.runtime.context.role)",
-              "sample": "agent: I can check that order.\ncustomer: I can't look up orders."
+              "sample": "agent: I can check that order.\ncustomer: I can't look up orders.",
+              "demo": "graph",
+              "graph": "mw07"
             },
             {
-              "id": "lesson:day 2/04. Middleware/08.dynamic_tools.py",
+              "id": "lesson:day 2/04.1 Middleware/08.dynamic_tools.py",
               "kind": "lesson",
               "title": "Dynamic tools",
               "n": "08",
@@ -1554,10 +1577,126 @@ export const course = {
               ],
               "file": "08.dynamic_tools.py",
               "day": 2,
-              "module": "04. Middleware",
+              "module": "04.1 Middleware",
               "snippet": "@wrap_model_call\ndef tools_for_role(request, handler):\n    return handler(request.override(tools=tools_for(request.runtime.context.role)))",
-              "sample": "agent: ORD-1 is shipped.\ncustomer: no lookup tool on this call"
-                }
+              "sample": "agent: ORD-1 is shipped.\ncustomer: no lookup tool on this call",
+              "demo": "graph",
+              "graph": "mw08"
+            },
+            {
+              "id": "lesson:day 2/04.1 Middleware/09.dynamic_model.py",
+              "kind": "lesson",
+              "title": "Dynamic model",
+              "n": "09",
+              "learn": "The model for this turn is middleware. Context picks it before the model node.",
+              "notes": [
+                "`@wrap_model_call` can replace `request.model` the same way the tool list is replaced.",
+                "A viewer and an agent can share one `create_agent`. The role chooses the model object.",
+                "This account uses one Groq model for both branches. The swap is still the wrapper."
+              ],
+              "file": "09.dynamic_model.py",
+              "day": 2,
+              "module": "04.1 Middleware",
+              "snippet": "return handler(request.override(model=chosen))",
+              "sample": "viewer -> openai/gpt-oss-20b\nagent -> openai/gpt-oss-20b",
+              "demo": "graph",
+              "graph": "mw09"
+            },
+            {
+              "id": "lesson:day 2/04.1 Middleware/10.dynamic_messages.py",
+              "kind": "lesson",
+              "title": "Dynamic messages",
+              "n": "10",
+              "learn": "A viewer is sent only the latest message. An agent on the same thread still sees the email.",
+              "notes": [
+                "`@wrap_model_call` reads `context.role` before the model runs.",
+                "A viewer gets `messages[-1:]`. The email was in the invoke, and that role cannot quote it.",
+                "An agent is not trimmed. Folding a long thread into a summary is the memory section."
+              ],
+              "file": "10.dynamic_messages.py",
+              "day": 2,
+              "module": "04.1 Middleware",
+              "snippet": "if request.runtime.context.role == \"viewer\":\n    messages = request.messages[-1:]",
+              "sample": "viewer: in 2 sent 1 — does not know the email\nagent: in 2 sent 2 — ada@example.com",
+              "demo": "graph",
+              "graph": "mw10"
+            },
+            {
+              "id": "lesson:day 2/04.1 Middleware/11.tool_retry.py",
+              "kind": "lesson",
+              "title": "Tool retry",
+              "n": "11",
+              "learn": "A lookup that times out runs once more. The retry list is the tool name.",
+              "notes": [
+                "`ToolRetryMiddleware` retries only the tools you name.",
+                "The first `lookup_order` raises a timeout. The second call returns shipped.",
+                "A write such as a refund stays off that list, so a failed charge is not sent twice."
+              ],
+              "file": "11.tool_retry.py",
+              "day": 2,
+              "module": "04.1 Middleware",
+              "snippet": "ToolRetryMiddleware(max_retries=1, tools=[\"lookup_order\"])",
+              "sample": "lookup calls: 2\nORD-1 shipped",
+              "demo": "graph",
+              "graph": "mw11"
+            },
+            {
+              "id": "lesson:day 2/04.1 Middleware/12.pii_redaction.py",
+              "kind": "lesson",
+              "title": "PII redaction",
+              "n": "12",
+              "learn": "An email in the user message is redacted before the model reads it.",
+              "notes": [
+                "`PIIMiddleware` with `apply_to_input=True` rewrites the human message.",
+                "The strategy here is redact. The model is asked to quote the email and can only quote the placeholder.",
+                "The same wrapper can also mask a card number, an IP address, or a URL."
+              ],
+              "file": "12.pii_redaction.py",
+              "day": 2,
+              "module": "04.1 Middleware",
+              "snippet": "PIIMiddleware(\"email\", strategy=\"redact\", apply_to_input=True)",
+              "sample": "model saw: My email is [REDACTED_EMAIL].",
+              "demo": "graph",
+              "graph": "mw12"
+            },
+            {
+              "id": "lesson:day 2/04.1 Middleware/13.model_fallback.py",
+              "kind": "lesson",
+              "title": "Model fallback",
+              "n": "13",
+              "learn": "If the first model call fails, the next model answers that same turn.",
+              "notes": [
+                "The agent is built on a model name that does not exist.",
+                "`ModelFallbackMiddleware` catches that error and calls the Groq model.",
+                "The user still gets one reply. They do not send the question again."
+              ],
+              "file": "13.model_fallback.py",
+              "day": 2,
+              "module": "04.1 Middleware",
+              "snippet": "ModelFallbackMiddleware(\"groq:openai/gpt-oss-20b\")",
+              "sample": "ready",
+              "demo": "graph",
+              "graph": "mw13"
+            },
+            {
+              "id": "lesson:day 2/04.1 Middleware/14.tool_selector.py",
+              "kind": "lesson",
+              "title": "Tool selector",
+              "n": "14",
+              "learn": "A cheap model call keeps one relevant tool. The main model does not see the other three.",
+              "notes": [
+                "The agent is registered with lookup, refund, hours, and menu.",
+                "`LLMToolSelectorMiddleware` with `max_tools=1` filters that list for this question.",
+                "A status question should leave `lookup_order`. The other tools stay registered for a later call."
+              ],
+              "file": "14.tool_selector.py",
+              "day": 2,
+              "module": "04.1 Middleware",
+              "snippet": "LLMToolSelectorMiddleware(model=\"groq:openai/gpt-oss-20b\", max_tools=1)",
+              "sample": "tools called: lookup_order\nORD-1 shipped",
+              "demo": "graph",
+              "graph": "mw14"
+            }
               ]
             },
             {
