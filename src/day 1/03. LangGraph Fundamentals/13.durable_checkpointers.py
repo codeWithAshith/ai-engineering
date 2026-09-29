@@ -40,7 +40,6 @@ thread = {"configurable": {"thread_id": "durable-1"}}
 
 with SqliteSaver.from_conn_string(str(DB)) as checkpointer:
     app = graph.compile(checkpointer=checkpointer)
-    print(app.get_graph().draw_mermaid())
     print("-" * 100)
     app.invoke(
         {

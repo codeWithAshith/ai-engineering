@@ -54,7 +54,6 @@ graph.add_conditional_edges("chatbot", tools_condition)
 graph.add_edge("tools", "chatbot")
 app = graph.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 
 result = app.invoke({"messages": [HumanMessage(content="What is the status of order ORD-1?")]})

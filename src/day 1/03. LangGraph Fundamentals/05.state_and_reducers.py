@@ -71,7 +71,6 @@ builder.add_edge("normalize", "enrich")
 builder.add_edge("enrich", END)
 app = builder.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 final = app.invoke(
     {

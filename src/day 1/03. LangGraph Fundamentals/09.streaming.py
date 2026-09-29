@@ -10,13 +10,11 @@
 # | "messages" | (token_chunk, meta) from the LLM      | Last AI reply, token by token (typing)           |
 # | invoke()   | one final state (not streaming)       | Same last AI reply, dumped once                  |
 #
-# How to show / see the difference (same inputs, four runs below):
-#   1) updates  → print the dict
-#                 look for {"chatbot": [AIMessage: "..."]}  — only the NEW bit
-#   2) values   → print len(state["messages"]) and the types
-#                 msgs=1 [HumanMessage] then msgs=2 [HumanMessage, AIMessage]
-#   3) messages → last AI reply only, token by token (typing effect)
-#   4) invoke() → that same last AI reply, dumped once
+# How the four runs print (same question):
+#   1) updates  → {'chatbot': ['AIMessage: Order ORD-1 has shipped.']}
+#   2) values   → Human: the question, then Human + AI: the reply
+#   3) messages → pieces of the AI sentence
+#   4) invoke() → that sentence once
 #
 # messages vs invoke(): both are only the last AI response.
 #   messages  — typing effect
@@ -61,7 +59,6 @@ graph.add_edge(START, "chatbot")
 graph.add_edge("chatbot", END)
 app = graph.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 
 QUESTION = "Write one sentence: order ORD-1 has shipped."
@@ -75,26 +72,24 @@ def preview(msg):
     return f"{type(msg).__name__}: {getattr(msg, 'content', '')}"
 
 
-# 1) updates — only what the node returned (delta), keyed by node name
+# 1) updates — only what the node returned
 print("1) updates  — only what chatbot just returned")
-print("   Look for: {'chatbot': ['AIMessage: ...']}")
-print("   The HumanMessage is not in this dict.")
 for event in app.stream(inputs, stream_mode="updates"):
     node, update = next(iter(event.items()))
     print({node: [preview(m) for m in update.get("messages", [])]})
 print("-" * 100)
 
-# 2) values — whole ticket after each step (history included)
+# 2) values — whole ticket: the question, then the question plus the reply
 print("2) values  — whole ticket after each step")
-print("   Look for: msgs=1 ['HumanMessage'] then msgs=2 ['HumanMessage', 'AIMessage']")
 for state in app.stream(inputs, stream_mode="values"):
-    kinds = [type(m).__name__ for m in state["messages"]]
-    print(f"   msgs={len(kinds)}  {kinds}")
+    for msg in state["messages"]:
+        who = "Human" if type(msg).__name__ == "HumanMessage" else "AI"
+        print(f"   {who}: {msg.content}")
+    print()
 print("-" * 100)
 
-# 3) messages — LLM tokens live (not a state dict)
-print("3) messages  — tokens as they arrive")
-print("   Look for: letters WHILE chatbot writes. Same sentence as invoke(), live.")
+# 3) messages — pieces of the AI sentence while it writes
+print("3) messages  — pieces of the AI sentence")
 for chunk, _meta in app.stream(inputs, stream_mode="messages"):
     text = getattr(chunk, "content", None) or ""
     if text:
@@ -102,9 +97,8 @@ for chunk, _meta in app.stream(inputs, stream_mode="messages"):
 print()
 print("-" * 100)
 
-# 4) invoke — one finished ticket, no events while chatbot works
-print("4) invoke()  — one finished ticket")
-print("   Look for: blank until chatbot is done, then the same sentence at once.")
+# 4) invoke — that same sentence, once, after the wait
+print("4) invoke()  — the sentence once")
 out = app.invoke(inputs)
 print(out["messages"][-1].content)
 print("-" * 100)

@@ -1,5 +1,87 @@
 import { useEffect, useState } from "react";
 
+let mermaidSeq = 0;
+
+function specToMermaid(spec) {
+  if (!spec) return "";
+  const names = [];
+  const add = (name) => {
+    if (name && !names.includes(name)) names.push(name);
+  };
+  (spec.layers || []).forEach((layer) => layer.forEach(add));
+  (spec.edges || []).forEach((edge) => {
+    add(edge.from);
+    add(edge.to);
+  });
+  (spec.backEdges || []).forEach((edge) => {
+    add(edge.from);
+    add(edge.to);
+  });
+  if (!names.length) return "";
+  const idOf = (name) => `n_${names.indexOf(name)}`;
+  const dir = spec.direction === "LR" ? "LR" : "TD";
+  const lines = [`flowchart ${dir}`];
+  names.forEach((name) => {
+    const label = String(name).replace(/"/g, "'");
+    lines.push(name === "START" || name === "END" ? `  ${idOf(name)}(["${label}"])` : `  ${idOf(name)}["${label}"]`);
+  });
+  const write = (edge, dotted) => {
+    const arrow = dotted ? "-.->" : "-->";
+    const label = edge.label ? `|${String(edge.label).replace(/\|/g, "/")}|` : "";
+    lines.push(`  ${idOf(edge.from)} ${arrow}${label} ${idOf(edge.to)}`);
+  };
+  (spec.edges || []).forEach((edge) => write(edge, false));
+  (spec.backEdges || []).forEach((edge) => write(edge, true));
+  return lines.join("\n");
+}
+
+function MermaidDiagram({ spec }) {
+  const text = specToMermaid(spec);
+  const [svg, setSvg] = useState("");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (!text) return undefined;
+    let cancelled = false;
+    const id = `mmd_${(mermaidSeq += 1)}`;
+    import("mermaid")
+      .then(({ default: mermaid }) => {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "dark",
+          securityLevel: "strict",
+          fontFamily: "ui-monospace, monospace",
+        });
+        return mermaid.render(id, text);
+      })
+      .then((out) => {
+        if (!cancelled) {
+          setErr("");
+          setSvg(out.svg);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) setErr(String(error?.message || error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [text]);
+
+  if (!text) return null;
+  return (
+    <details className="mt-4 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
+      <summary className="cursor-pointer font-mono text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        Mermaid
+      </summary>
+      {err ? <p className="mt-2 font-mono text-xs text-red-300">{err}</p> : null}
+      {svg ? (
+        <div className="mt-2 overflow-x-auto [&_svg]:mx-auto [&_svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+      ) : null}
+    </details>
+  );
+}
+
 const DIAGRAMS = {
   why: { kind: "why" },
   nodes: {
@@ -195,11 +277,11 @@ const DIAGRAMS = {
     },
     idleNote: "Both leave START together. merge is a join — it waits. Press Play.",
     walk: [
-      { nodes: ["START"], edges: [], note: "Two add_edge from START. normalize and check_tier leave at the same time. Not A then B, and not Send." },
+      { nodes: ["START"], edges: [], note: "Two add_edge from START. normalize and check_tier leave at the same time. Not A then B." },
       { nodes: ["START", "normalize", "check_tier"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }], note: "Both have an edge into merge. Branches do not see each other's writes. check_tier still uses the raw order_id." },
       { nodes: ["START", "normalize", "check_tier"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }], note: "Suppose normalize finishes first. merge does not start early. The slow branch is not skipped." },
       { nodes: ["START", "normalize", "check_tier", "merge"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }, { from: "normalize", to: "merge" }, { from: "check_tier", to: "merge" }], note: "LangGraph treats the two edges into merge as a join: merge runs once, after both have finished." },
-      { nodes: ["START", "normalize", "check_tier", "merge", "END"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }, { from: "normalize", to: "merge" }, { from: "check_tier", to: "merge" }, { from: "merge", to: "END" }], note: "notes concatenate with Annotated[list, add]. Next lesson's Send is one worker per list item at runtime." },
+      { nodes: ["START", "normalize", "check_tier", "merge", "END"], edges: [{ from: "START", to: "normalize" }, { from: "START", to: "check_tier" }, { from: "normalize", to: "merge" }, { from: "check_tier", to: "merge" }, { from: "merge", to: "END" }], note: "notes concatenate with Annotated[list, add]." },
     ],
   },
   streaming: { kind: "streaming" },
@@ -394,66 +476,36 @@ const DIAGRAMS = {
     ],
   },
   subgraph: { kind: "subgraph" },
-  mapreduce: {
-    kicker: "16 · Map-reduce with Send",
-    caption: "Compiled mermaid has two nodes: work and reduce. plan is the routing function on START, not a node.",
+  when: { kind: "when" },
+  pauses: {
+    kicker: "02 · Where a pause can sit",
+    caption: "Four boundaries on the agent loop. END is still the built-in exit when the model sends no tool call.",
     direction: "TD",
-    layers: [["START"], ["work"], ["reduce"], ["END"]],
+    layers: [["before model"], ["model"], ["after model"], ["before tool"], ["tool"], ["after tool"]],
     edges: [
-      { from: "START", to: "work", label: "plan → Send" },
-      { from: "work", to: "reduce" },
-      { from: "reduce", to: "END" },
+      { from: "before model", to: "model" },
+      { from: "model", to: "after model" },
+      { from: "after model", to: "before tool" },
+      { from: "before tool", to: "tool" },
+      { from: "tool", to: "after tool" },
     ],
     meanings: {
-      START: "order_ids list",
-      work: "one node, many Sends",
-      reduce: "join notes",
-      END: "one summary",
+      "before model": "interrupt_before chatbot",
+      model: "chatbot writes",
+      "after model": "interrupt_after chatbot",
+      "before tool": "interrupt_before tools",
+      tool: "ToolNode runs",
+      "after tool": "interrupt_after tools",
     },
-    dashboard: [
-      { name: "compiled graph", eventLabel: "Nodes", event: "work, reduce", whenLabel: "Edges", when: "START -plan→ work → reduce → END. plan is add_conditional_edges(START, plan, ['work'])." },
-      { name: "runtime Send", eventLabel: "What runs", event: "one work worker per order id", whenLabel: "Merge", when: "Annotated[list, add] concatenates notes. Then reduce writes summary." },
-    ],
-    cases: [
-      {
-        name: "compiled graph",
-        walk: [
-          { nodes: ["START"], edges: [], note: "plan is not a node. It is the function on START that returns Send objects.", ticket: { order_ids: "ORD-1, ORD-2, ORD-3" } },
-          { nodes: ["START", "work"], edges: [{ from: "START", to: "work" }], note: "add_conditional_edges(START, plan, ['work']). Each Send('work', {order_id}) is one worker of the same node.", ticket: { node: "work" } },
-          { nodes: ["START", "work", "reduce"], edges: [{ from: "START", to: "work" }, { from: "work", to: "reduce" }], note: "Every worker finishes, then reduce. notes accumulate with Annotated[list, add].", ticket: { notes: "ORD-1=shipped; ORD-2=pending; ORD-3=cancelled" } },
-          { nodes: ["START", "work", "reduce", "END"], edges: [{ from: "START", to: "work" }, { from: "work", to: "reduce" }, { from: "reduce", to: "END" }], note: "summary is one string. Press runtime Send to see the three workers the mermaid collapses.", ticket: { summary: "ORD-1=shipped; ORD-2=pending; ORD-3=cancelled" } },
-        ],
-      },
-      {
-        name: "runtime Send",
-        layers: [["START"], ["work ORD-1", "work ORD-2", "work ORD-3"], ["reduce"], ["END"]],
-        edges: [
-          { from: "START", to: "work ORD-1", label: "Send" },
-          { from: "START", to: "work ORD-2", label: "Send" },
-          { from: "START", to: "work ORD-3", label: "Send" },
-          { from: "work ORD-1", to: "reduce" },
-          { from: "work ORD-2", to: "reduce" },
-          { from: "work ORD-3", to: "reduce" },
-          { from: "reduce", to: "END" },
-        ],
-        meanings: {
-          START: "plan() returns Sends",
-          "work ORD-1": "shipped",
-          "work ORD-2": "pending",
-          "work ORD-3": "cancelled",
-          reduce: "join notes",
-          END: "one summary",
-        },
-        walk: [
-          { nodes: ["START"], edges: [], note: "Customer asks about three ids at once. A single-order path cannot do this in parallel.", ticket: { order_ids: "ORD-1, ORD-2, ORD-3" } },
-          { nodes: ["START", "work ORD-1", "work ORD-2", "work ORD-3"], edges: [{ from: "START", to: "work ORD-1" }, { from: "START", to: "work ORD-2" }, { from: "START", to: "work ORD-3" }], note: "Same work function, three items, in parallel. Not three add_edge calls — Send at runtime.", ticket: { notes: "three worker writes" } },
-          { nodes: ["START", "work ORD-1", "work ORD-2", "work ORD-3", "reduce"], edges: [{ from: "START", to: "work ORD-1" }, { from: "START", to: "work ORD-2" }, { from: "START", to: "work ORD-3" }, { from: "work ORD-1", to: "reduce" }, { from: "work ORD-2", to: "reduce" }, { from: "work ORD-3", to: "reduce" }], note: "reduce writes one support summary from notes.", ticket: { summary: "ORD-1=shipped; ORD-2=pending; ORD-3=cancelled" } },
-          { nodes: ["START", "work ORD-1", "work ORD-2", "work ORD-3", "reduce", "END"], edges: [{ from: "START", to: "work ORD-1" }, { from: "START", to: "work ORD-2" }, { from: "START", to: "work ORD-3" }, { from: "work ORD-1", to: "reduce" }, { from: "work ORD-2", to: "reduce" }, { from: "work ORD-3", to: "reduce" }, { from: "reduce", to: "END" }], note: "If order 2 depended on order 1, this would be the wrong pattern — use a sequence.", ticket: { summary: "ORD-1=shipped; ORD-2=pending; ORD-3=cancelled" } },
-        ],
-      },
+    walk: [
+      { nodes: ["before model"], edges: [], note: "The question is in. The model has not written." },
+      { nodes: ["before model", "model"], edges: [{ from: "before model", to: "model" }], note: "chatbot runs." },
+      { nodes: ["model", "after model"], edges: [{ from: "model", to: "after model" }], note: "You can read the planned tool call. The tool has not run." },
+      { nodes: ["after model", "before tool"], edges: [{ from: "after model", to: "before tool" }], note: "The route chose tools. ToolNode has not started." },
+      { nodes: ["before tool", "tool"], edges: [{ from: "before tool", to: "tool" }], note: "The tool runs. interrupt() inside request_refund is a stop in the middle of this node." },
+      { nodes: ["tool", "after tool"], edges: [{ from: "tool", to: "after tool" }], note: "The tool result is on the ticket. The model has not written the customer reply." },
     ],
   },
-  when: { kind: "when" },
   hitl: { kind: "hitl" },
   approve: {
     kicker: "03 · Approve before tools",
@@ -780,6 +832,7 @@ function FlowChart({ spec, activeNodes, activeEdges }) {
           </span>
         </p>
       ) : null}
+      <MermaidDiagram spec={spec} />
     </div>
   );
 }
@@ -1319,25 +1372,25 @@ const STREAM_MODES = [
     name: "values",
     event: "full TicketState after that step",
     when: "UI that re-renders the whole ticket each step",
-    see: "print types. msgs=1 [HumanMessage] then msgs=2 [HumanMessage, AIMessage].",
+    see: "Human: Write one sentence: order ORD-1 has shipped. Then that plus AI: Order ORD-1 has shipped.",
     walk: [
       {
         nodes: ["START"],
         edges: [],
         note: "Same question. stream_mode='values'. Each event is the full ticket — not a delta.",
-        ticket: { question: STREAM_QUESTION, print: "msgs=1  ['HumanMessage']" },
+        ticket: { print: "HumanMessage: Write one sentence: order ORD-1 has shipped." },
       },
       {
         nodes: ["START", "chatbot"],
         edges: [{ from: "START", to: "chatbot" }],
-        note: "Count grows because history stays. HumanMessage is still on the ticket, plus the reply.",
-        ticket: { print: "msgs=2  ['HumanMessage', 'AIMessage']" },
+        note: "The question is still on the ticket. The reply is added: AIMessage: Order ORD-1 has shipped.",
+        ticket: { print: "HumanMessage: Write one sentence… | AIMessage: Order ORD-1 has shipped." },
       },
       {
         nodes: ["START", "chatbot", "END"],
         edges: [{ from: "START", to: "chatbot" }, { from: "chatbot", to: "END" }],
-        note: "Use this when a UI re-renders the whole ticket after each step.",
-        ticket: { print: "msgs=2  ['HumanMessage', 'AIMessage']" },
+        note: "Same two lines. A chat screen redraws from this full ticket.",
+        ticket: { print: "HumanMessage: Write one sentence… | AIMessage: Order ORD-1 has shipped." },
       },
     ],
   },
@@ -1350,13 +1403,13 @@ const STREAM_MODES = [
       {
         nodes: ["START"],
         edges: [],
-        note: "messages gives only the last AI response. Same words invoke() will dump. Not the ticket.",
+        note: "messages is not a dump of the last message. Each event is a piece of that sentence while chatbot is still writing. The HumanMessage never shows up.",
         ticket: { what: "last AI reply only" },
       },
       {
         nodes: ["START", "chatbot"],
         edges: [{ from: "START", to: "chatbot" }],
-        note: "The only difference: tokens arrive like a typing effect.",
+        note: "First piece. Then more pieces. Join them and you get the sentence invoke() prints at the end.",
         ticket: { print: "Order" },
       },
       {
@@ -1444,9 +1497,23 @@ function StreamModes({ caseIdx, setCaseIdx }) {
           ],
         }}
       />
-      <p className="mb-3 font-serif text-sm text-slate-400">
-        Pick a mode, then Play. Same last AI response. messages types it. invoke() dumps it.
+      <p className="mb-3 font-serif text-sm text-slate-300">
+        Four prints of one question. Typing is messages, not updates. updates is the finished AI line from chatbot. values is the question and that AI line together.
       </p>
+      <div className="mb-4 grid gap-2">
+        {[
+          ["updates", "{'chatbot': ['AIMessage: Order ORD-1 has shipped.']}", "The question is not here. This arrives once, when chatbot finishes."],
+          ["values", "Human: Write one sentence: order ORD-1 has shipped.", "Then also AI: Order ORD-1 has shipped. Whole chat, for a screen redraw."],
+          ["messages", "\"Order\"   \" ORD-1\"   \" has shipped.\"", "This is the typing effect. Pieces of the AI sentence only."],
+          ["invoke()", "Order ORD-1 has shipped.", "Same sentence as messages, one print, after the wait."],
+        ].map(([name, line, note]) => (
+          <div key={name} className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
+            <p className="m-0 font-mono text-[11px] font-bold text-teal-300">{name}</p>
+            <p className="m-0 mt-1 font-mono text-[12px] text-slate-200">{line}</p>
+            <p className="m-0 mt-0.5 font-serif text-[12px] text-slate-400">{note}</p>
+          </div>
+        ))}
+      </div>
       <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-4">
         <FlowChart spec={STREAM_GRAPH} activeNodes={beat?.nodes} activeEdges={beat?.edges} />
         <WalkBar
@@ -1594,7 +1661,7 @@ const SUBGRAPH_WALK = [
   { nodes: ["START", "normalize", "lookup"], edges: [{ from: "START", to: "normalize" }, { from: "normalize", to: "lookup" }], inner: { nodes: ["START", "fetch_status"], edges: [{ from: "START", to: "fetch_status" }] }, note: "fetch_status lives only in the subgraph. ORDERS.get(ORD-1).", ticket: { status: "shipped" } },
   { nodes: ["START", "normalize", "lookup"], edges: [{ from: "START", to: "normalize" }, { from: "normalize", to: "lookup" }], inner: { nodes: ["START", "fetch_status", "END"], edges: [{ from: "START", to: "fetch_status" }, { from: "fetch_status", to: "END" }] }, note: "Inner END writes status onto the parent ticket. Compile once; reuse on other flows.", ticket: { status: "shipped" } },
   { nodes: ["START", "normalize", "lookup", "format_note"], edges: [{ from: "START", to: "normalize" }, { from: "normalize", to: "lookup" }, { from: "lookup", to: "format_note" }], note: "Back on the parent. format_note uses the status the subgraph wrote.", ticket: { note: "ORD-1 is currently shipped" } },
-  { nodes: ["START", "normalize", "lookup", "format_note", "END"], edges: [{ from: "START", to: "normalize" }, { from: "normalize", to: "lookup" }, { from: "lookup", to: "format_note" }, { from: "format_note", to: "END" }], note: "ORD-2 takes the same path. Still one ticket at a time — that is Send.", ticket: { note: "ORD-1 is currently shipped" } },
+  { nodes: ["START", "normalize", "lookup", "format_note", "END"], edges: [{ from: "START", to: "normalize" }, { from: "normalize", to: "lookup" }, { from: "lookup", to: "format_note" }, { from: "format_note", to: "END" }], note: "ORD-2 takes the same path. One ticket at a time.", ticket: { note: "ORD-1 is currently shipped" } },
 ];
 
 function subgraphInnerOn(nodes, inner, name) {
@@ -1660,6 +1727,18 @@ function SubgraphLesson() {
           <Stem on={edgeOn(edges, "format_note", "END")} />
           <NodeBox name="END" on={isOn(nodes, "END")} meaning="parent exit" />
         </div>
+        <MermaidDiagram
+          spec={{
+            edges: [
+              { from: "START", to: "normalize" },
+              { from: "normalize", to: "lookup" },
+              { from: "lookup", to: "fetch_status" },
+              { from: "fetch_status", to: "lookup END" },
+              { from: "lookup END", to: "format_note" },
+              { from: "format_note", to: "END" },
+            ],
+          }}
+        />
         <WalkBar
           walk={SUBGRAPH_WALK}
           step={step}
@@ -1883,6 +1962,16 @@ function HitlLesson({ caseIdx, setCaseIdx }) {
           </div>
           <p className="m-0 mt-3 font-mono text-[11px] text-slate-400">↺ tools → chatbot · result</p>
         </div>
+        <MermaidDiagram
+          spec={{
+            edges: [
+              { from: "START", to: "chatbot" },
+              { from: "chatbot", to: "tools", label: "tool_calls" },
+              { from: "tools", to: "chatbot", label: "result" },
+              { from: "chatbot", to: "END", label: "no tool_calls" },
+            ],
+          }}
+        />
         <WalkBar
           walk={active.walk}
           step={step}
@@ -1972,6 +2061,16 @@ function AgentLoopLesson() {
             </div>
           </div>
         </div>
+        <MermaidDiagram
+          spec={{
+            edges: [
+              { from: "START", to: "chatbot" },
+              { from: "chatbot", to: "tools", label: "tool_calls" },
+              { from: "tools", to: "chatbot", label: "result" },
+              { from: "chatbot", to: "END", label: "no tool_calls" },
+            ],
+          }}
+        />
         <WalkBar
           walk={LOOP_WALK}
           step={step}

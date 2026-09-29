@@ -38,7 +38,6 @@ builder.add_edge("enrich", END)
 
 app = builder.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 print(app.invoke({"order_id": " ord-1 ", "status": "", "note": ""}))
 print("-" * 100)

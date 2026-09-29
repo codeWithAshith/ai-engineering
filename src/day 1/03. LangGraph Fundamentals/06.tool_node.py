@@ -65,7 +65,6 @@ graph.add_edge("chatbot", "tools")
 graph.add_edge("tools", END)
 app = graph.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 
 result = app.invoke({"messages": [HumanMessage(content="What is the status of ORD-1?")]})

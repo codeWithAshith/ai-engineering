@@ -137,7 +137,6 @@ coordinator.add_edge("tracking", END)
 coordinator.add_edge("general", END)
 app = coordinator.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 
 # Test all three paths

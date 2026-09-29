@@ -76,7 +76,6 @@ print()
 
 # Debug step 1: Visualize graph
 print("1) Visualize graph structure:")
-print(app.get_graph().draw_mermaid()[:200] + "...")
 print("-" * 100)
 
 # Debug step 2: Stream to see which tools get called

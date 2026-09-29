@@ -413,23 +413,6 @@ export const course = {
               ],
               "snippet": "HumanMessage(content=[{\"type\": \"text\", \"text\": \"...\"}, {\"type\": \"image_url\", \"image_url\": {\"url\": data_url}}])",
               "sample": "blocks: text, image_url\ninvoke still returns one AIMessage."
-            },
-            {
-              "id": "lesson:day 1/01. Langchain Fundamentals/13.in_memory_saver.py",
-              "kind": "lesson",
-              "title": "Short-term memory",
-              "n": "13",
-              "learn": "Short-term memory is this chat. InMemorySaver keeps it in RAM under one thread_id.",
-              "file": "13.in_memory_saver.py",
-              "day": 1,
-              "module": "01. Langchain Fundamentals",
-              "notes": [
-                "Short-term memory is the messages in the current chat. Without a checkpointer, each `invoke` starts over.",
-                "`InMemorySaver` stores those messages in RAM for one `thread_id`. Pass that id on every turn of the same chat.",
-                "A second `thread_id` is a different chat. Quit the process and this memory is gone. That is not long-term memory."
-              ],
-              "snippet": "create_agent(model, checkpointer=InMemorySaver())\nconfig={\"configurable\": {\"thread_id\": \"france\"}}",
-              "sample": "same thread: Paris.\nother thread: Which country?"
             }
           ]
         },
@@ -879,7 +862,8 @@ export const course = {
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
-                "**tools_condition on chatbot.** After chatbot writes a message, this function reads it. If that message has `tool_calls`, the next node is `tools`. If it does not, the next node is `END`.",
+                "**tools_condition on chatbot.** After chatbot writes a message, this function reads that message. Tool calls means go to `tools`. No tool calls means go to `END`. It does not judge whether the question was answered. The model stops by writing a reply with no tool calls.",
+                "**END is not in the file.** You never `add_node(\"END\")`. `START` and `END` already exist. `add_conditional_edges(\"chatbot\", tools_condition)` is the exit. The only edge you add back is `tools → chatbot`, so the picture looks like a loop. It ends on the chatbot visit that does not request a tool.",
                 "**The missing edge.** Lesson 06 always did chatbot → tools → END. Here the graph is `chatbot ↔ tools`. The ↑ result sends the ToolMessage back. Chatbot sees `shipped`, writes the reply with no calls, `tools_condition` sends you to END.",
                 "**create_agent is this graph.** Same two desks. You add the nodes. The shortcut compiles `chatbot` ↔ `ToolNode` with `tools_condition` as the stop.",
                 "**One example.** Status of ORD-1? Chatbot asks for the lookup, tools return `shipped`, chatbot answers in text, then `END`. If that second visit asks for another tool, the same check sends it back to `tools` instead of stopping on an unrun call.",
@@ -969,8 +953,7 @@ export const course = {
               "notes": [
                 "**Join.** Both `normalize` and `check_tier` leave START at the same time, and both have an edge into `merge`. LangGraph treats that as a join: `merge` runs **once**, after **both** have finished.",
                 "**If one is faster.** The fast branch does not start `merge` early. The slow one does not get skipped. `merge` still waits.",
-                "**Branches are blind.** They do not see each other's writes until merge. `check_tier` still uses the raw `order_id`. `notes` accumulate with `Annotated[list, add]`.",
-                "**Vs Send.** These edges are fixed in code. Map-reduce `Send` creates one worker per item at runtime — use that when you loop over a list of order ids, not here."
+                "**Branches are blind.** They do not see each other's writes until merge. `check_tier` still uses the raw `order_id`. `notes` accumulate with `Annotated[list, add]`."
               ],
               "file": "08.parallel_edges.py",
               "day": 1,
@@ -987,10 +970,11 @@ export const course = {
               "n": "09",
               "learn": "Same question, four watches. No tools. Only stream_mode (or invoke) changes.",
               "notes": [
-                "**The example.** Graph is `START → chatbot → END`. No tools — we are not looking up ORD-1. Question: *Write one sentence: order ORD-1 has shipped.* The file runs that question four times. Only how you watch it changes.",
-                "**updates.** print the dict. You see `{'chatbot': ['AIMessage: Order ORD-1 has shipped.']}`. The HumanMessage is not in this dict — only what chatbot just returned.",
-                "**values.** print types. First event `msgs=1 ['HumanMessage']`. After chatbot `msgs=2 ['HumanMessage', 'AIMessage']`. Full ticket each step, so a UI can re-render.",
-                "**messages vs invoke().** Both give only the last AI response. The words are the same: `Order ORD-1 has shipped.` The only difference is how that reply arrives. `messages` streams it token by token, like a typing effect. `invoke()` waits, then dumps the whole sentence at once. Neither one shows the HumanMessage or the ticket. That is what `updates` and `values` are for."
+                "**Same question, four times.** `Write one sentence: order ORD-1 has shipped.` Graph is `START → chatbot → END`. No tools. Only the watch changes.",
+                "**updates.** One dict from the node that just finished: `{'chatbot': ['AIMessage: Order ORD-1 has shipped.']}`. The human question is not in it, because chatbot did not write that. This fires once, when the node is done. It is not the typing effect.",
+                "**values.** The whole ticket after each step, so both sides are there. First the question: `HumanMessage: Write one sentence: order ORD-1 has shipped.` Then that question plus `AIMessage: Order ORD-1 has shipped.` Use this when the screen must redraw the whole chat.",
+                "**messages.** The typing effect. Pieces of the AI sentence while the model is still writing: `\"Order\"`, `\" ORD-1\"`, `\" has shipped.\"` Join them and you get the sentence. The question never appears.",
+                "**invoke().** Waits until chatbot is done, then prints `Order ORD-1 has shipped.` once. Same words as messages. No pieces along the way."
               ],
               "blocks": [
                 {
@@ -1007,10 +991,10 @@ export const course = {
                   "type": "table",
                   "headers": ["Mode", "How to see the difference"],
                   "rows": [
-                    ["`updates`", "{'chatbot': ['AIMessage: Order ORD-1 has shipped.']} — HumanMessage is not here"],
-                    ["`values`", "msgs=1 ['HumanMessage'] then msgs=2 ['HumanMessage', 'AIMessage']"],
-                    ["`messages`", "last AI reply only — typed token by token"],
-                    ["`invoke()`", "same last AI reply — one dump, no typing"]
+                    ["`updates`", "{'chatbot': ['AIMessage: Order ORD-1 has shipped.']}", "Human question is not here. One shot when the node finishes — not typing."],
+                    ["`values`", "Human: Write one sentence…   then also AI: Order ORD-1 has shipped.", "Whole ticket, so a screen can redraw the chat"],
+                    ["`messages`", "\"Order\" then \" ORD-1\" then \" has shipped.\"", "Typing. Pieces of the AI sentence only."],
+                    ["`invoke()`", "Order ORD-1 has shipped.", "Same sentence as messages, one print after the wait"]
                   ]
                 }
               ],
@@ -1058,13 +1042,11 @@ export const course = {
               "kind": "lesson",
               "title": "Persistence",
               "n": "11",
-              "learn": "You pass a config dict every invoke. thread_id is the conversation. checkpoint_id is a frame. There is no config_id.",
+              "learn": "The second turn still knows ORD-1, because the same thread_id reads the last checkpoint.",
               "notes": [
-                "**MemorySaver is already the saver.** Compile with `checkpointer=MemorySaver()`. Checkpoints live in RAM, keyed by `thread_id`. Evolution (How It Evolved) is the types story: no memory → session dicts → MemorySaver → SqliteSaver / time travel.",
-                "**Config is a dict you pass every invoke.** `app.invoke(inputs, config=thread)`. It does not stick by itself. There is no `config_id`.",
-                "**`thread_id`:** which conversation. Required. `{ configurable: { thread_id: 'support-1' } }` → latest frame.",
-                "**`checkpoint_id`:** which frame of that conversation. Optional. Same dict. Pin a uuid from `get_state` / `get_state_history`.",
-                "**Order in RAM:** each turn appends a frame. `get_state_history` lists newest first: `[0]` latest, then older. `get_state(thread)` is `[0]`."
+                "**What persists.** Turn one says the order id is ORD-1. Turn two asks which id, on the same `thread_id`, and the reply can use it. A new `thread_id` cannot.",
+                "**Saver vs checkpoint.** `InMemorySaver` is the box on `compile(checkpointer=...)`. A checkpoint is one snapshot of that chat after a step. `get_state` reads the latest snapshot.",
+                "**Later.** A file that is still there after the process stops is the next lesson. A fact that survives a new thread is the Day 2 store."
               ],
               "blocks": [
                 {
@@ -1086,8 +1068,8 @@ export const course = {
                   ]
                 }
               ],
-              "snippet": "thread = {\"configurable\": {\"thread_id\": \"support-1\"}}\napp.invoke(turn1, config=thread)  # pass the dict every time\napp.invoke(turn2, config=thread)  # latest frame\nsnap = app.get_state(thread)      # [0]; copy checkpoint_id to pin",
-              "sample": "same thread: ORD-1\nnew thread: (does not know ORD-1)\n[0] latest  [1] older  [2] older",
+              "snippet": "thread = {\"configurable\": {\"thread_id\": \"support-1\"}}\napp.invoke(turn1, config=thread)\napp.invoke(turn2, config=thread)\nsnap = app.get_state(thread)",
+              "sample": "same thread: ORD-1\nnew thread: (does not know ORD-1)\nthread_id support-1\nmessages 4",
               "file": "11.persistence.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
@@ -1168,13 +1150,13 @@ export const course = {
               "kind": "lesson",
               "title": "Durable checkpointers",
               "n": "13",
-              "learn": "SqliteSaver is the same checkpointer API as MemorySaver, on disk.",
+              "learn": "SqliteSaver is the same checkpointer API, on disk, so the thread is still there after the process stops.",
               "file": "13.durable_checkpointers.py",
               "day": 1,
               "module": "03. LangGraph Fundamentals",
               "notes": [
-                "**What it is:** `SqliteSaver` is another checkpointer, not a new graph. Same `compile(checkpointer=...)` as `MemorySaver`. It writes to disk so the thread survives a process restart.",
-                "**Limitation:** MemorySaver only lives in RAM — restart the support process and ticket ORD-2 is gone.",
+                "**What it is:** `SqliteSaver` is another checkpointer, not a new graph. Same `compile(checkpointer=...)` as `InMemorySaver`. The snapshots go to a file, so a later run still has the thread.",
+                "**Why this lesson.** Persistence already showed the second turn remembering ORD-1. That copy lived in RAM. Here the copy is still there after the process stops.",
                 "**Example:** thread `durable-1` stores ORD-2, then a later invoke still replies ORD-2. Still limited: persist is not inspect-and-fix — that is `get_state` / `update_state`."
               ],
               "blocks": [
@@ -1182,7 +1164,7 @@ export const course = {
                   "type": "table",
                   "headers": ["Saver", "Lives", "Survives process restart"],
                   "rows": [
-                    ["`MemorySaver`", "RAM", "No — lesson 10"],
+                    ["`InMemorySaver`", "RAM", "No — previous lesson"],
                     ["`SqliteSaver`", "disk", "Yes — same compile() call"]
                   ]
                 }
@@ -1246,48 +1228,18 @@ export const course = {
               "module": "03. LangGraph Fundamentals",
               "notes": [
                 "**The box is the lesson.** `lookup` is `lookup_sub` — a compiled graph (`START → fetch_status → END`) used as one parent node, not `fetch_status` drawn on the parent.",
-                "**Compile once.** `parent.add_node(\"lookup\", lookup_sub)` — reuse that subgraph on other ticket flows.",
-                "**Still limited:** one ticket at a time. Multi-order is Send."
+                "**Compile once.** `parent.add_node(\"lookup\", lookup_sub)` — reuse that subgraph on other ticket flows."
               ],
               "snippet": "parent.add_node(\"lookup\", lookup_sub)\nparent.add_edge(\"normalize\", \"lookup\")",
               "sample": "ORD-1: {'order_id': 'ORD-1', 'status': 'shipped', 'note': 'ORD-1 is currently shipped'}",
               "demo": "graph",
               "graph": "subgraph"
-            },
-            {
-              "id": "lesson:day 1/03. LangGraph Fundamentals/16.map_reduce_send.py",
-              "kind": "lesson",
-              "title": "Map-reduce with Send",
-              "n": "16",
-              "learn": "Send starts one branch per item. A reducer joins the results.",
-              "file": "16.map_reduce_send.py",
-              "day": 1,
-              "module": "03. LangGraph Fundamentals",
-              "notes": [
-                "**What it is:** compiled mermaid has two nodes — `work` and `reduce`. `plan` is **not** a node. It is the routing function: `add_conditional_edges(START, plan, ['work'])` returns `Send('work', {order_id})` per item.",
-                "**Merge:** `Annotated[list, add]` concatenates worker `notes`. Then `reduce` writes one `summary`.",
-                "**Limitation:** a single-order path cannot look up ORD-1, ORD-2, and ORD-3 in parallel. If order 2 depends on order 1, use a sequence instead."
-              ],
-              "blocks": [
-                {
-                  "type": "table",
-                  "headers": ["Picture", "What you see"],
-                  "rows": [
-                    ["compiled graph", "START -plan→ work → reduce → END. One `work` node."],
-                    ["runtime Send", "one worker per order id, then reduce joins"]
-                  ]
-                }
-              ],
-              "snippet": "def plan(state):\n    return [Send(\"work\", {\"order_id\": oid}) for oid in state[\"order_ids\"]]\ngraph.add_conditional_edges(START, plan, [\"work\"])",
-              "sample": "{'order_ids': ['ORD-1', 'ORD-2', 'ORD-3'], 'notes': ['ORD-1=shipped', 'ORD-2=pending', 'ORD-3=cancelled'], 'summary': 'ORD-1=shipped; ORD-2=pending; ORD-3=cancelled'}",
-              "demo": "graph",
-              "graph": "mapreduce"
             }
           ]
         },
         {
           "id": "module:day 1/04. Building Agents with LangGraph",
-          "title": "04. Building Agents with LangGraph",
+          "title": "04. Human pauses",
           "items": [
             {
               "id": "lesson:day 1/04. Building Agents with LangGraph/01.when_to_build_agents.py",
@@ -1310,16 +1262,49 @@ export const course = {
               "graph": "when"
             },
             {
+              "id": "lesson:day 1/04. Building Agents with LangGraph/06.where_to_pause.py",
+              "kind": "lesson",
+              "title": "Where a pause can sit",
+              "n": "02",
+              "learn": "Four boundaries: before the model, after the model, before the tool, after the tool.",
+              "file": "06.where_to_pause.py",
+              "day": 1,
+              "module": "04. Building Agents with LangGraph",
+              "notes": [
+                "**Before the model.** `interrupt_before=[\"chatbot\"]`. The question is in. The model has not written yet.",
+                "**After the model.** `interrupt_after=[\"chatbot\"]`. You can read the message, including a planned tool call. The tool has not run.",
+                "**Before the tool.** `interrupt_before=[\"tools\"]`. The route already chose tools. `ToolNode` has not started.",
+                "**After the tool.** `interrupt_after=[\"tools\"]`. The tool result is on the ticket. The model has not turned it into a reply.",
+                "**Inside the tool.** `interrupt()` in `request_refund` stops mid-tool. That is the next lesson. `END` is still the built-in exit when the model sends no tool call."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Pause", "What you write", "What the person sees"],
+                  "rows": [
+                    ["Before the model", "interrupt_before chatbot", "The question, no reply yet"],
+                    ["After the model", "interrupt_after chatbot", "The planned tool call"],
+                    ["Before the tool", "interrupt_before tools", "The call, not executed"],
+                    ["After the tool", "interrupt_after tools", "The tool result, no customer reply yet"]
+                  ]
+                }
+              ],
+              "snippet": "interrupt_before=[\"chatbot\"]\ninterrupt_after=[\"chatbot\"]\ninterrupt_before=[\"tools\"]\ninterrupt_after=[\"tools\"]",
+              "sample": "before model → model → after model → before tool → tool → after tool",
+              "demo": "graph",
+              "graph": "pauses"
+            },
+            {
               "id": "lesson:day 1/04. Building Agents with LangGraph/02.human_in_the_loop.py",
               "kind": "lesson",
               "title": "Human in the loop",
-              "n": "02",
+              "n": "03",
               "learn": "interrupt() inside a tool pauses the run until a person approves.",
               "notes": [
-                "**Where the person sits:** inside `request_refund`, on the `tools` node. The compiled mermaid is still chatbot ⇄ tools — the human is not a new node. Lookup still runs.",
-                "**Resume:** `Command(resume=True)` on the same `thread_id`. You do not send the question again.",
-                "**Still limited:** only that tool pauses. Approving any tool at the boundary, or fixing a wrong id while paused, is next.",
-                "**Vs get_state.** Both use a checkpointer and a person. Lesson 14 edits a finished ticket: `get_state`, `update_state` writes `order_id`, `invoke(None)` runs enrich again. Here the person is inside `request_refund`. `Command(resume=True)` approves. It does not edit a field. A wrong id found while this refund is paused needs both."
+                "**Steps.** System prompt, message state, three tools. `lookup_order` finishes. `request_refund` calls `interrupt()`. The run stops. The checkpoint for that `thread_id` stays.",
+                "**Resume.** The next call is `Command(resume=True)` on the same `thread_id`. You do not send the question again. `interrupt()` returns that True, the tool says approved, chatbot writes the reply.",
+                "**The screen.** The first request returns `__interrupt__` with `please_approve` and the order id. The page shows Yes / No. Yes calls your API again with the same thread and `resume=True`. The graph is not sitting in a loop waiting on the browser.",
+                "**Only this tool.** Lookup never pauses. Approving every tool, or editing the id while paused, is the next lesson."
               ],
               "file": "02.human_in_the_loop.py",
               "day": 1,
@@ -1383,7 +1368,7 @@ export const course = {
               "id": "lesson:day 1/04. Building Agents with LangGraph/03.approve_before_tools.py",
               "kind": "lesson",
               "title": "Approve before tools",
-              "n": "03",
+              "n": "04",
               "learn": "interrupt_before=[\"tools\"] pauses before any tool runs.",
               "notes": [
                 "**Concept:** `interrupt_before=[\"tools\"]` pauses at the tools node boundary. No special code inside the tool. Resume with `invoke(None, config)`.",
@@ -1403,7 +1388,7 @@ export const course = {
               "id": "lesson:day 1/04. Building Agents with LangGraph/04.hitl_fix_resume.py",
               "kind": "lesson",
               "title": "Fix and resume",
-              "n": "04",
+              "n": "05",
               "learn": "While paused, update_state can fix the order id. Then you resume.",
               "notes": [
                 "**Concept:** `update_state(config, values)` while paused writes a correction on the checkpoint. Then `invoke(None, config)` continues.",
@@ -1423,7 +1408,7 @@ export const course = {
               "id": "lesson:day 1/04. Building Agents with LangGraph/05.agent_handoff.py",
               "kind": "lesson",
               "title": "Agent handoff",
-              "n": "05",
+              "n": "06",
               "learn": "A coordinator routes the ticket to a specialist agent.",
               "notes": [
                 "**Concept:** a coordinator classifies intent, then routes to refund / tracking / general. Each specialist is a compiled subgraph with its own tools and prompt.",
@@ -1618,7 +1603,7 @@ export const course = {
               "kind": "lesson",
               "title": "Agent store",
               "n": "03",
-              "learn": "The checkpointer is one thread. The Store is facts that survive a new thread.",
+              "learn": "Long-term memory starts here. The Store keeps a fact after the thread is new.",
               "notes": [
                 "A checkpointer does not share \"email me\" across a new `thread_id`.",
                 "The Store is a namespaced key/value next to the checkpointer. A tool reads and writes it with `ToolRuntime.store`.",

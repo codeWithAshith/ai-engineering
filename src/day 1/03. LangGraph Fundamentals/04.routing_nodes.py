@@ -70,7 +70,6 @@ graph.add_edge("product", END)
 graph.add_edge("other", END)
 app = graph.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 for q in ["Status of ORD-1?", "Is the Mouse in stock?", "Hello!"]:
     r = app.invoke({"question": q, "intent": "", "answer": ""})

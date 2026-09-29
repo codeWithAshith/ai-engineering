@@ -10,9 +10,6 @@
 # merge runs once, after both have finished.
 # Branches do not see each other's writes until merge.
 #
-# Differs from map-reduce (Send): here edges are fixed in code.
-# Send creates one worker per item at runtime — not this file.
-#
 # Limitation overcome: some workflows need two independent checks at the same
 # time (validate order + check inventory). Not for looping over a list of ids.
 #
@@ -82,7 +79,6 @@ graph.add_edge("merge", END)
 
 app = graph.compile()
 
-print(app.get_graph().draw_mermaid())
 print("-" * 100)
 
 result = app.invoke({
@@ -99,7 +95,6 @@ print("-" * 100)
 
 print("PARALLEL PATTERNS:")
 print("  Fixed parallel edges → START → A and B (both run, then merge)")
-print("  Send (map-reduce)    → dynamic: one worker per item in a list")
 print("")
 print("Use fixed parallel when:")
 print("  - Two independent checks (validation + lookup)")
