@@ -1,10 +1,10 @@
-# 04 — Grounded answers
+# 06 — Grounded answers
 #
 # Concept: retriever → context → prompt → model; answer ONLY from policy context.
 #
 # Limitation overcome: retrieval alone does not produce a customer-facing reply.
 # Example: refund window question grounded in Acme docs.
-# Still limited: answers without listed sources are hard to trust in support UIs.
+# Same two lines in the next file: hits, then context.
 
 from pathlib import Path
 
@@ -47,6 +47,7 @@ model = init_chat_model(model="groq:openai/gpt-oss-20b")
 chain = prompt | model | StrOutputParser()
 
 question = "What is the refund window?"
-context = "\n\n".join(d.page_content for d in retriever.invoke(question))
+hits = retriever.invoke(question)
+context = "\n\n".join(d.page_content for d in hits)
 print(chain.invoke({"context": context, "question": question}))
 print("-" * 100)
