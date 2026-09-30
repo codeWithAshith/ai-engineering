@@ -12,7 +12,7 @@ import { ToolLook } from "./ToolLook.jsx";
 import { ToolSources } from "./ToolSources.jsx";
 import { SummarizeThread } from "./SummarizeThread.jsx";
 import { HumanPause } from "./HumanPause.jsx";
-import { MemoryPieces } from "./MemoryPieces.jsx";
+import { MemoryLab } from "./MemoryLab.jsx";
 import { RefundCases } from "./RefundCases.jsx";
 import { ResponseShape } from "./ResponseShape.jsx";
 import { ReactiveLoop } from "./ReactiveLoop.jsx";
@@ -448,7 +448,7 @@ function Article({ item, prev, next }) {
       {item.demo === "tool-sources" ? <ToolSources /> : null}
       {item.demo === "summarize-thread" ? <SummarizeThread /> : null}
       {item.demo === "human-pause" ? <HumanPause /> : null}
-      {item.demo === "memory-pieces" ? <MemoryPieces /> : null}
+      {item.demo === "memory" ? <MemoryLab id={item.memory} /> : null}
       {item.demo === "refund-cases" ? <RefundCases /> : null}
       {item.demo === "response-shape" ? <ResponseShape /> : null}
       {item.demo === "reactive-loop" ? <ReactiveLoop /> : null}

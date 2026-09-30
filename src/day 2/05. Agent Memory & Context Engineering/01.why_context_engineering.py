@@ -1,7 +1,3 @@
-# 01 — Why context engineering (order-support)
+# 01 — The graph and long-term memory
 #
-# Concept: context engineering = choosing WHAT the model sees each turn.
-# Layers: system · session history · user memory · retrieved docs/tools · current question.
-#
-# Limitation of Day 1 agent: full history + tool dumps blow the window; prefs die
-# when the thread ends; policy answers are not in the ORDERS dict.
+# The graph holds this thread. A fact that should survive a new thread lives outside it.

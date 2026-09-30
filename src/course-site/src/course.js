@@ -1706,16 +1706,28 @@ export const course = {
             {
               "id": "lesson:day 2/05. Agent Memory & Context Engineering/01.why_context_engineering.py",
               "kind": "lesson",
-              "title": "Why context engineering (order-support)",
+              "title": "The graph and long-term memory",
               "n": "01",
-              "learn": "Context engineering is choosing what the model sees on this turn.",
+              "learn": "The graph holds this run. Long-term memory sits outside it and is not graph state.",
+              "demo": "memory",
+              "memory": "why",
               "file": "01.why_context_engineering.py",
               "day": 2,
               "module": "05. Agent Memory & Context Engineering",
               "notes": [
-                "The layers are the system prompt, the session history, user memory, retrieved docs or tools, and the current question.",
-                "The Day 1 agent sends the whole thread and every tool dump. That fills the window.",
-                "A preference dies when the thread ends. A policy answer is not in the ORDERS dict."
+                "The graph holds this thread. Day 1 persistence is that box: the checkpoint for this thread_id.",
+                "A fact that should survive a new thread lives outside the graph. It is not a field on graph state.",
+                "A node can read that fact into this run and write one back. Retrieved documents are the RAG section."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Box", "What it holds"],
+                  "rows": [
+                    ["Graph", "This thread. A new thread_id starts empty."],
+                    ["Outside the graph", "A fact that the next thread can still read."]
+                  ]
+                }
               ],
               "snippet": "system · history · memory · retrieved docs · question",
               "sample": "ORD-1 status is in ORDERS\nrefund window is not"
@@ -1726,103 +1738,86 @@ export const course = {
               "title": "Context limits and trim",
               "n": "02",
               "learn": "trim_messages keeps the tail of the thread. The checkpointer still has the whole thread.",
+              "demo": "memory",
+              "memory": "trim",
               "notes": [
-                "A long thread costs more, adds noise, and gets cut off.",
-                "`history[-10:]` can start on a tool result and break the chat API. `trim_messages` counts tokens and can force the slice to start on a human message.",
-                "Trim only changes what this invoke sends. Facts you still need later belong in the Store."
+                "`trim_messages` returns a shorter copy for this model call. The history list is unchanged. A checkpointer would still hold the full thread.",
+                "`strategy=\"last\"` keeps the newest messages that fit. `start_on=\"human\"` makes that copy open on a person. `include_system` keeps the support line.",
+                "`strategy=\"first\"` keeps the old opening. `token_counter=len` with `max_tokens=4` means four messages, not four tokens."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Copy", "What stays"],
+                  "rows": [
+                    ["last 80 tokens", "Follow-up 4 and 5. No system line."],
+                    ["same budget, include_system", "You are order support. Be brief. Then the newest that fit."],
+                    ["first 80 tokens", "The old opening. Not Follow-up 5."],
+                    ["last 4 messages", "Four messages, counted with len."]
+                  ]
+                }
               ],
               "file": "02.context_limits_and_trim.py",
               "day": 2,
               "module": "05. Agent Memory & Context Engineering",
               "snippet": "trim_messages(messages, max_tokens=..., start_on=\"human\")",
-              "sample": "checkpointer: full thread\nmodel sees: the recent tail"
+              "sample": "last 80 tokens: Follow-up 4 and 5\ninclude_system: the support line stays\nstrategy first: Follow-up 0\nlen, max 4 messages: the last four"
             },
             {
-              "id": "lesson:day 2/05. Agent Memory & Context Engineering/03.agent_store.py",
-              "kind": "lesson",
-              "title": "Agent store",
-              "n": "03",
-              "learn": "Long-term memory starts here. The Store keeps a fact after the thread is new.",
-              "notes": [
-                "A checkpointer does not share \"email me\" across a new `thread_id`.",
-                "The Store is a namespaced key/value next to the checkpointer. A tool reads and writes it with `ToolRuntime.store`.",
-                "Save the contact preference for the customer of ORD-1. A new support thread can recall it."
-              ],
-              "file": "03.agent_store.py",
-              "day": 2,
-              "module": "05. Agent Memory & Context Engineering",
-              "snippet": "store.put((\"customers\", \"cust-42\"), \"contact\", {\"value\": \"email\"})",
-              "sample": "thread A: email me\nthread B: still email"
-            },
-            {
-              "id": "lesson:day 2/05. Agent Memory & Context Engineering/09.summarize_thread.py",
+              "id": "lesson:day 2/05. Agent Memory & Context Engineering/03.summarize_thread.py",
               "kind": "lesson",
               "title": "Summarize the thread",
-              "n": "09",
+              "n": "03",
               "learn": "The saver keeps the chat. SummarizationMiddleware folds the old turns into one note.",
               "demo": "summarize-thread",
               "notes": [
-                "This is one small piece. The saver holds the thread. The summarizer only rewrites what the model is shown.",
-                "Move the slider. The old turns become one summary. The last two messages stay.",
-                "A fact that should survive a new chat belongs in the Store, the previous lesson. A summary is not that fact."
+                "This file is only the summary. No tools and no store. After 6 messages, older turns become one note and the last 2 stay.",
+                "The saver still holds this chat. The note is what the next model call sees.",
+                "Growth middleware, the last lesson in this section, uses this same wrapper and also keeps a store fact and clears old tool results."
               ],
-              "file": "09.summarize_thread.py",
+              "file": "03.summarize_thread.py",
               "day": 2,
               "module": "05. Agent Memory & Context Engineering",
               "snippet": "checkpointer=InMemorySaver(),\nmiddleware=[SummarizationMiddleware(trigger=(\"messages\", 6), keep=(\"messages\", 2))]",
               "sample": "summary of the gift, the email, and the damage\nthen the latest question"
             },
             {
-              "id": "lesson:day 2/05. Agent Memory & Context Engineering/04.growth_middleware.py",
+              "id": "lesson:day 2/05. Agent Memory & Context Engineering/04.agent_store.py",
               "kind": "lesson",
-              "title": "Growth middleware",
+              "title": "Agent store",
               "n": "04",
-              "learn": "Saver, summary, and store are three small pieces. This is where they meet.",
-              "demo": "memory-pieces",
+              "learn": "Long-term memory starts here. The Store keeps a fact after the thread is new.",
+              "demo": "memory",
+              "memory": "store",
               "notes": [
-                "The saver keeps this chat. The summarizer folds old turns into one note. The store keeps a fact for a new chat.",
-                "Each one is its own lesson. None of them replaces the others.",
-                "On one agent you pass the saver, the summarizer middleware, and the store together."
+                "A checkpointer does not share \"email me\" across a new `thread_id`.",
+                "The Store is a namespaced key/value next to the checkpointer. A tool reads and writes it with `ToolRuntime.store`.",
+                "Save the contact preference for the customer of ORD-1. A new support thread can recall it."
               ],
-              "file": "04.growth_middleware.py",
+              "file": "04.agent_store.py",
               "day": 2,
               "module": "05. Agent Memory & Context Engineering",
-              "snippet": "create_agent(model, tools, middleware=[SummarizationMiddleware(...)], store=store)",
-              "sample": "old tool dumps cleared\npreference still in the Store"
+              "snippet": "store.put((\"customers\", \"cust-42\"), \"contact\", {\"value\": \"email\"})",
+              "sample": "thread A: email me\nthread B: still email"
             },
             {
-              "id": "lesson:day 2/05. Agent Memory & Context Engineering/05.production_backends.py",
-              "kind": "lesson",
-              "title": "Production backends",
-              "n": "05",
-              "learn": "Postgres uses the same Store and checkpointer calls as the in-memory versions.",
-              "notes": [
-                "`PostgresStore` has the same put and search API as `InMemoryStore`. It survives a process restart.",
-                "`PostgresSaver` is the same `compile(checkpointer=...)` as `MemorySaver`, shared across processes for one `thread_id`.",
-                "The order-support shapes do not change. The backend does."
-              ],
-              "file": "05.production_backends.py",
-              "day": 2,
-              "module": "05. Agent Memory & Context Engineering",
-              "snippet": "PostgresStore.from_conn_string(POSTGRES_URI)\nPostgresSaver.from_conn_string(POSTGRES_URI)",
-              "sample": "restart the process\ncontact preference and thread ord-1 are still there"
-            },
-            {
-              "id": "lesson:day 2/05. Agent Memory & Context Engineering/06.semantic_memory.py",
+              "id": "lesson:day 2/05. Agent Memory & Context Engineering/05.semantic_memory.py",
               "kind": "lesson",
               "title": "Semantic memory",
-              "n": "06",
+              "n": "05",
               "learn": "A fact about the customer, found by the meaning of the question, not by the key name.",
+              "demo": "memory",
+              "memory": "semantic",
               "notes": [
                 "Semantic memory is a fact. \"Contact by email. Do not call.\" The chat that produced it is not the memory.",
                 "The Store item is the fact. `search(query=...)` ranks items with an embedding. The question does not have to match the key `contact`.",
                 "This is not RAG. RAG searches policy documents. This searches facts you saved about the customer."
               ],
-              "file": "06.semantic_memory.py",
+              "file": "05.semantic_memory.py",
               "day": 2,
               "module": "05. Agent Memory & Context Engineering",
               "snippet": "store.search(namespace, query=\"Do we call this customer or email them?\", limit=1)",
-              "sample": "Stored: Contact by email. Do not call.\nHit: Contact by email. Do not call.",
+              "sample": "Hit: Contact by email. Do not call.\nagent: Email them.",
               "evolution": {
                 "title": "How a preference became a fact",
                 "subtitle": "From entity memory to a Store search",
@@ -1855,21 +1850,23 @@ export const course = {
               }
             },
             {
-              "id": "lesson:day 2/05. Agent Memory & Context Engineering/07.episodic_memory.py",
+              "id": "lesson:day 2/05. Agent Memory & Context Engineering/06.episodic_memory.py",
               "kind": "lesson",
               "title": "Episodic memory",
-              "n": "07",
+              "n": "06",
               "learn": "One past case: what the situation was, what you did, and how it ended.",
+              "demo": "memory",
+              "memory": "episodic",
               "notes": [
                 "An episode is a case. Ticket TKT-42: late ORD-1, refunded, customer satisfied.",
                 "Semantic memory would only say \"this customer likes email.\" The episode says what worked last time a shipment was late.",
                 "Store one short case. Search with the new ticket. Do not replay the old transcript."
               ],
-              "file": "07.episodic_memory.py",
+              "file": "06.episodic_memory.py",
               "day": 2,
               "module": "05. Agent Memory & Context Engineering",
               "snippet": "store.search(namespace, query=\"Package is late. What did we do last time?\", limit=1)",
-              "sample": "Hit: tkt-42 — Late shipment of ORD-1. Action: refunded. Outcome: customer satisfied.",
+              "sample": "Hit: tkt-42 — refunded, customer satisfied.\nagent: We refunded the customer.",
               "evolution": {
                 "title": "How a past case stayed findable",
                 "subtitle": "From the chat log to one episode",
@@ -1902,21 +1899,23 @@ export const course = {
               }
             },
             {
-              "id": "lesson:day 2/05. Agent Memory & Context Engineering/08.procedural_memory.py",
+              "id": "lesson:day 2/05. Agent Memory & Context Engineering/07.procedural_memory.py",
               "kind": "lesson",
               "title": "Procedural memory",
-              "n": "08",
+              "n": "07",
               "learn": "A rule for the next run. The system prompt changes because the instruction changed.",
+              "demo": "memory",
+              "memory": "procedural",
               "notes": [
                 "Procedural memory is an instruction. \"When a shipment is late, offer the refund before asking them to wait.\"",
                 "That is not a customer fact and not a past ticket. It is how the agent should behave next time.",
                 "Save the rule in the Store. The next thread reads it into the system prompt. The chat does not have to be longer for the behavior to change."
               ],
-              "file": "08.procedural_memory.py",
+              "file": "07.procedural_memory.py",
               "day": 2,
               "module": "05. Agent Memory & Context Engineering",
               "snippet": "system_prompt = f\"You handle order support.\\nStanding rule: {rule}\"",
-              "sample": "Before: Greet the customer, then look up the order.\nAfter: When a shipment is late, offer the refund before asking them to wait.",
+              "sample": "After: offer the refund before asking them to wait.\nagent: Offer a refund before asking them to wait.",
               "evolution": {
                 "title": "How a better reply became a standing rule",
                 "subtitle": "From editing the file to loading the instruction",
@@ -1947,8 +1946,57 @@ export const course = {
                 ],
                 "takeaway": "Procedural memory changes the instruction. It does not add another message to the thread."
               }
-            }
-          ]
+            },
+            {
+              "id": "lesson:day 2/05. Agent Memory & Context Engineering/08.production_backends.py",
+              "kind": "lesson",
+              "title": "Production backends",
+              "n": "08",
+              "learn": "Postgres uses the same Store and checkpointer calls as the in-memory versions.",
+              "demo": "memory",
+              "memory": "backends",
+              "notes": [
+                "`PostgresStore` has the same put and search API as `InMemoryStore`. It survives a process restart.",
+                "`PostgresSaver` is the same `compile(checkpointer=...)` as `MemorySaver`, shared across processes for one `thread_id`.",
+                "The order-support shapes do not change. The backend does."
+              ],
+              "file": "08.production_backends.py",
+              "day": 2,
+              "module": "05. Agent Memory & Context Engineering",
+              "snippet": "PostgresStore.from_conn_string(POSTGRES_URI)\nPostgresSaver.from_conn_string(POSTGRES_URI)",
+              "sample": "restart the process\ncontact preference and thread ord-1 are still there"
+            },
+            {
+              "id": "lesson:day 2/05. Agent Memory & Context Engineering/09.growth_middleware.py",
+              "kind": "lesson",
+              "title": "Growth middleware",
+              "n": "09",
+              "learn": "Saver, summary, and store are three small pieces. This is where they meet.",
+              "demo": "memory",
+              "memory": "growth",
+              "notes": [
+                "Summarize the thread is only the note. This file puts that note on an agent that also has tools, a saver, and a store.",
+                "After 8 messages, older turns become one note and the last 4 stay. `contact=email` was written to the store.",
+                "`ClearToolUsesEdit` clears old tool dumps once they pass 2000 tokens and keeps the two newest. Clearing a lookup result does not delete the stored preference."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Piece", "This file"],
+                  "rows": [
+                    ["MemorySaver", "thread support-growth"],
+                    ["SummarizationMiddleware", "trigger 8 messages, keep the last 4"],
+                    ["Store", "contact = email, still there after a new thread"],
+                    ["ClearToolUsesEdit", "old tool results become [old tool result cleared]"]
+                  ]
+                }
+              ],
+              "file": "09.growth_middleware.py",
+              "day": 2,
+              "module": "05. Agent Memory & Context Engineering",
+              "snippet": "create_agent(model, tools, middleware=[SummarizationMiddleware(...)], store=store)",
+              "sample": "old tool dumps cleared\npreference still in the Store"
+            }]
         },
         {
           "id": "module:day 2/06. RAG Fundamentals",
