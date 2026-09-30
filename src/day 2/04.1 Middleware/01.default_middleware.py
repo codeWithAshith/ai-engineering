@@ -39,8 +39,8 @@ def ping(x: str) -> str:
     return f"pong:{x}"
 
 
-# --- A) ToolErrorMiddleware ---
-print("A) ToolErrorMiddleware — unknown order raises, agent recovers:")
+# A raised error becomes a tool message.
+print("tool error")
 err_agent = create_agent(
     model="groq:openai/gpt-oss-20b",
     tools=[lookup_order],
@@ -56,10 +56,8 @@ print(
         "messages"
     ][-1].content
 )
-print("-" * 100)
-
-# --- B) ToolCallLimitMiddleware ---
-print("B) ToolCallLimitMiddleware — run_limit=1, exit_behavior='error':")
+# Stop after one tool call.
+print("tool limit")
 tool_limit_agent = create_agent(
     model="groq:openai/gpt-oss-20b",
     tools=[ping],
@@ -69,11 +67,10 @@ tool_limit_agent = create_agent(
 try:
     tool_limit_agent.invoke({"messages": [HumanMessage(content="Ping a then b.")]})
 except ToolCallLimitExceededError as e:
-    print("  caught:", type(e).__name__, "—", e)
-print("-" * 100)
+    print(type(e).__name__)
 
-# --- C) ModelCallLimitMiddleware ---
-print("C) ModelCallLimitMiddleware — run_limit=1 (blocks the follow-up model call):")
+# Stop after one model call.
+print("model limit")
 model_limit_agent = create_agent(
     model="groq:openai/gpt-oss-20b",
     tools=[lookup_order],
@@ -81,8 +78,6 @@ model_limit_agent = create_agent(
     middleware=[ModelCallLimitMiddleware(run_limit=1, exit_behavior="error")],
 )
 try:
-    # 1st model call plans tools; limit=1 → cannot call the model again after tools
     model_limit_agent.invoke({"messages": [HumanMessage(content="Status of ORD-1?")]})
 except ModelCallLimitExceededError as e:
-    print("  caught:", type(e).__name__, "—", e)
-print("-" * 100)
+    print(type(e).__name__)
