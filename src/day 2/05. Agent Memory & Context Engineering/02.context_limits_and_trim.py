@@ -1,96 +1,75 @@
-# 02 — Context limits and trimming
+# 02 — Context limits and trim
 #
-# Concept: models have a fixed token budget. When threads grow long:
-#   Problem: Extra tokens = higher cost, noise, truncation
-#   Solution: trim_messages keeps only recent history for the model
+# trim_messages returns a shorter copy for this model call.
+# history itself is unchanged. The checkpointer would still hold the full thread.
 #
-# Where this came from:
-#   The cheap version is history[-10:], which can start the list on a tool result and break the chat API.
-#   trim_messages counts tokens, keeps the tail, and can force the slice to start on a human message.
-#   The checkpointer still has the full thread. Trim only changes what this invoke sends.
-#
-# Limitation overcome: Day 1 agents append messages forever.
-# Still limited: trimming drops facts — long-term prefs need Store (next lesson).
-#
-# Note: Day 1 checkpointer still stores the full thread on disk.
-# trim_messages only affects what the MODEL sees in each invoke.
+# max_tokens       budget for that copy
+# token_counter    how size is counted. Approximate tokens, or len for messages.
+# strategy="last"  keep the newest messages that fit. "first" keeps the oldest.
+# start_on="human" the copy must open on a human message. Only valid with strategy="last".
+# include_system   keep the system message even when it sits outside the window. Only with strategy="last".
+# allow_partial    False drops a message that does not fit. True cuts that message.
 
-# ════════════════════════════════════════════════════════════════════════════
-# PART 1: Demonstrating the context overflow problem
-# ════════════════════════════════════════════════════════════════════════════
-
-MESSAGES = [
-    "Customer: Status of ORD-1?",
-    "Agent: Looking up ORD-1… shipped.",
-    "Customer: When will it arrive?",
-    "Agent: Shipping policy says 3–5 days after shipped.",
-    "Customer: Can I refund if late?",
-    "Agent: Refund window is 45 days with receipt.",
-] * 8  # Simulate many back-and-forth turns
-
-
-def rough_tokens(text: str) -> int:
-    """Rough estimate: 1 token per word."""
-    return max(1, len(text.split()))
-
-
-total = sum(rough_tokens(m) for m in MESSAGES)
-print("═" * 100)
-print("PART 1: Context overflow problem")
-print("═" * 100)
-print(f"Turns in thread: {len(MESSAGES)}")
-print(f"Rough token estimate: {total}")
-print(f"If model limit were 200 tokens → this thread exceeds budget")
-print("-" * 100)
-
-# ════════════════════════════════════════════════════════════════════════════
-# PART 2: Trimming messages to fit budget
-# ════════════════════════════════════════════════════════════════════════════
-
-from langchain.messages import AIMessage, HumanMessage, trim_messages
+from langchain.messages import AIMessage, HumanMessage, SystemMessage, trim_messages
 from langchain_core.messages.utils import count_tokens_approximately
 
-history = []
-for i in range(12):
+history = [SystemMessage(content="You are order support. Be brief.")]
+for i in range(6):
     history.append(HumanMessage(content=f"Follow-up {i} about ORD-1 shipping"))
     history.append(AIMessage(content=f"Update {i}: still shipped, ETA unchanged"))
 
-print("═" * 100)
-print("PART 2: trim_messages solution")
-print("═" * 100)
-print(f"Full history: {len(history)} messages")
 
-# Trim to fit 80 tokens, keeping most recent messages
-trimmed = trim_messages(
-    history,
-    max_tokens=80,
-    token_counter=count_tokens_approximately,
-    strategy="last",  # Keep most recent
-    start_on="human",  # Ensure conversation starts with user
+def show(label, messages):
+    print(label)
+    for message in messages:
+        print(f"  {message.type}: {message.content}")
+    print()
+
+
+show(f"full thread ({len(history)} messages)", history)
+
+show(
+    "last 80 tokens, must start on human",
+    trim_messages(
+        history,
+        max_tokens=80,
+        token_counter=count_tokens_approximately,
+        strategy="last",
+        start_on="human",
+        include_system=False,
+        allow_partial=False,
+    ),
 )
 
-print(f"After trim: {len(trimmed)} messages fit in budget")
-print()
-print("Kept messages:")
-for m in trimmed:
-    print(f"  {m.type}: {m.content[:60]}...")
-print("-" * 100)
+show(
+    "same budget, keep the system line too",
+    trim_messages(
+        history,
+        max_tokens=80,
+        token_counter=count_tokens_approximately,
+        strategy="last",
+        start_on="human",
+        include_system=True,
+    ),
+)
 
-print("TRIM STRATEGIES:")
-print("  'last'  → Keep most recent N messages (default, best for chat)")
-print("  'first' → Keep oldest N messages (rare use case)")
-print()
-print("WHAT GETS DROPPED:")
-print("  • Older messages fall off the window")
-print("  • Model cannot see dropped context")
-print("  • Checkpointer still has full thread on disk")
-print()
-print("WHEN TO USE:")
-print("  ✓ Long support threads (keep context manageable)")
-print("  ✓ Token budget enforcement (cost control)")
-print("  ✓ Recent context more important than old")
-print()
-print("WHEN NOT ENOUGH:")
-print("  ✗ Need to remember customer preferences across sessions → use Store")
-print("  ✗ Need to recall facts from early in thread → use summarization")
-print("-" * 100)
+show(
+    "first 80 tokens — the old opening, not the latest update",
+    trim_messages(
+        history,
+        max_tokens=80,
+        token_counter=count_tokens_approximately,
+        strategy="first",
+    ),
+)
+
+show(
+    "last 4 messages, counted with len",
+    trim_messages(
+        history,
+        max_tokens=4,
+        token_counter=len,
+        strategy="last",
+        start_on="human",
+    ),
+)

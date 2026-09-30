@@ -1,4 +1,4 @@
-# 09 — Summarize the thread
+# 03 — Summarize the thread
 #
 # InMemorySaver keeps this chat under one thread_id.
 # SummarizationMiddleware replaces the old turns with one summary
