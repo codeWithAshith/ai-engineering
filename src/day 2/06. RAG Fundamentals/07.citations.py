@@ -1,10 +1,10 @@
-# 05 — Citations
+# 07 — Citations
 #
 # Concept: return the answer plus source metadata from retrieved chunks.
 #
 # Limitation overcome: grounded text without sources is hard to audit on ORD-* tickets.
 # Example: answer + policy file names.
-# Still limited: fundamentals stop here — apps module builds fuller pipelines.
+# Same two lines as grounded answers: hits, then context. Sources come from hits.
 
 from pathlib import Path
 

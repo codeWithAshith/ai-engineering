@@ -2008,29 +2008,53 @@ export const course = {
               "title": "Why RAG (order-support)",
               "n": "01",
               "animation": "rag",
-              "learn": "ORDERS can answer a status. It cannot answer a policy question.",
+              "learn": "ORDERS can answer a status. A refund window lives in a policy file.",
+              "demo": "rag",
+              "rag": "why",
               "file": "01.why_rag.py",
               "day": 2,
               "module": "06. RAG Fundamentals",
               "notes": [
-                "A model does not have your private policy, and a policy change should not mean another training run.",
-                "Stuffing the whole policy into the prompt hits the context window.",
-                "RAG retrieves the relevant passages at question time and the answer can name the file.",
-                "\"What is the refund window?\" is a document question. \"Status of ORD-1\" stays a tool."
+                "ORDERS answers ORD-1 shipped. The refund window is in refund_policy.txt: 45 days of delivery.",
+                "Do not train that line in, and do not paste the whole file. Retrieve the passage at question time."
               ],
-              "snippet": "question → embed → search → top chunks → prompt → answer",
-              "sample": "ORD-1: shipped (tool)\nrefund window: 30 days (policy doc)"
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Question", "Where the answer lives"],
+                  "rows": [
+                    ["Status of ORD-1", "ORDERS · shipped"],
+                    ["What is the refund window?", "refund_policy.txt · 45 days of delivery"]
+                  ]
+                }
+              ],
+              "snippet": "retrieve the passage at question time",
+              "sample": "ORD-1: shipped\nrefund window: 45 days of delivery"
             },
             {
               "id": "lesson:day 2/06. RAG Fundamentals/02.rag_pipeline_index.py",
               "kind": "lesson",
               "title": "Rag pipeline index",
               "n": "02",
-              "learn": "Indexing is once per document change: load, chunk, embed, store.",
+              "learn": "Load, chunk, embed, store. Same embedding model as the question later.",
+              "demo": "rag",
+              "rag": "index",
               "notes": [
-                "A document is `page_content` plus metadata, so a later answer can cite the file.",
-                "The splitter breaks on paragraphs and sentences. The same embedding model must be used for the chunks and for the question.",
-                "This file stops at a searchable store. It does not answer yet."
+                "Three files: contacts.txt, refund_policy.txt, shipping_policy.txt. metadata.source is the file name.",
+                "chunk_size is 160 and chunk_overlap is 40. Embeddings are nomic-embed-text.",
+                "The file prints the doc count, the first chunk, and dims of embed_query(\"refund window\"). It does not answer."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Step", "This file"],
+                  "rows": [
+                    ["Load", "data/*.txt → Document"],
+                    ["Chunk", "160 / overlap 40"],
+                    ["Embed", "nomic-embed-text"],
+                    ["Store", "InMemoryVectorStore · stops here"]
+                  ]
+                }
               ],
               "file": "02.rag_pipeline_index.py",
               "day": 2,
@@ -2039,55 +2063,167 @@ export const course = {
               "sample": "policy files indexed\nready for a question"
             },
             {
-              "id": "lesson:day 2/06. RAG Fundamentals/03.rag_pipeline_query.py",
+              "id": "lesson:day 2/06. RAG Fundamentals/03.text_splitters.py",
+              "kind": "lesson",
+              "title": "Text splitters",
+              "n": "03",
+              "learn": "Splitting this paragraph is chunking. Character, recursive, token, and sentence each cut the whole policy.",
+              "demo": "splitters",
+              "notes": [
+                "CharacterTextSplitter cuts on a space, so the long body comes down to about 120 characters. A blank line alone would leave that body as one 343-character chunk.",
+                "RecursiveCharacterTextSplitter tries a blank line, then a newline, then a space. On the short lines in the policy file, each line already fits, so you see no overlap. On a paragraph longer than the size, chunk_overlap copies the tail of one chunk onto the next.",
+                "TokenTextSplitter counts tokens. On this paragraph, chunk_size 19 cuts Refunds into Ref and unds. That is a token boundary, not a character count.",
+                "A sentence splitter cuts on each period. All five sentences stay."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Splitter", "Cut"],
+                  "rows": [
+                    ["Character", "space separator · cuts the body down to about 120 characters"],
+                    ["Recursive", "blank line, then line, then space · this course"],
+                    ["Token", "token budget · can split a word"],
+                    ["Sentence", "one chunk per sentence · the photo line stays"]
+                  ]
+                }
+              ],
+              "file": "03.text_splitters.py",
+              "day": 2,
+              "module": "06. RAG Fundamentals",
+              "snippet": "RecursiveCharacterTextSplitter(chunk_size=160, chunk_overlap=40)",
+              "sample": "character: 343-char paragraph\nrecursive: one line per chunk"
+            },
+            {
+              "id": "lesson:day 2/06. RAG Fundamentals/04.embeddings.py",
+              "kind": "lesson",
+              "title": "Embeddings",
+              "n": "04",
+              "learn": "An embedding turns tokens into one vector. Use the same model for the chunk and the question.",
+              "demo": "embedding",
+              "notes": [
+                "The text is split into tokens. This toy treats each word as one token.",
+                "refund is [0.90, 0.10, 0.00]. window is [0.80, 0.20, 0.00]. The embedding of “refund window” is their average: [0.85, 0.15, 0.00].",
+                "“shipping days” averages to [0.05, 0.15, 0.85]. The two vectors point different ways, so a refund question sits nearer the refund chunk.",
+                "The index file does not use this toy. It calls nomic-embed-text, which returns one long vector, and prints that length as dims.",
+                "Use nomic-embed-text for this course: local, English policy text, and the same model at index time and query time. A different model means build the store again.",
+                "Use a hosted embedding API when the corpus does not stay on this machine. Index and query must both call that API. The chat model writes the reply. It does not embed."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Text", "Vector"],
+                  "rows": [
+                    ["refund", "[0.90, 0.10, 0.00]"],
+                    ["window", "[0.80, 0.20, 0.00]"],
+                    ["refund window", "[0.85, 0.15, 0.00]"],
+                    ["shipping days", "[0.05, 0.15, 0.85]"]
+                  ]
+                },
+                {
+                  "type": "table",
+                  "headers": ["When", "Model"],
+                  "rows": [
+                    ["Showing the shape in class", "toy average · 3 numbers"],
+                    ["This course, English policy, on this machine", "nomic-embed-text"],
+                    ["Corpus leaves this machine", "one hosted embedding API, both sides"],
+                    ["You changed the model", "build the store again"]
+                  ]
+                }
+              ],
+              "file": "04.embeddings.py",
+              "day": 2,
+              "module": "06. RAG Fundamentals",
+              "snippet": "tokens → average → one vector",
+              "sample": "refund window → [0.85, 0.15, 0.00]\nshipping days → [0.05, 0.15, 0.85]"
+            },
+            {
+              "id": "lesson:day 2/06. RAG Fundamentals/05.rag_pipeline_query.py",
               "kind": "lesson",
               "title": "Rag pipeline query",
-              "n": "03",
-              "learn": "Query time embeds the question with the same model and returns the closest chunks.",
+              "n": "05",
+              "learn": "similarity_search returns the nearest chunks. as_retriever() is that search as a runnable.",
+              "demo": "rag",
+              "rag": "query",
               "notes": [
-                "`similarity_search` is the store's own method. `as_retriever()` is the runnable: question in, documents out.",
-                "A chain can call the retriever without importing the store type.",
-                "Retrieved chunks are not the customer-facing answer. Grounding is the next file."
+                "similarity_search embeds the question with the same model as the chunks, compares that vector to the stored vectors, and returns the k nearest documents. It is a method on the store.",
+                "k=2 keeps the two closest passages. The refund question prints source and the first 90 characters.",
+                "as_retriever() wraps that search as a runnable. invoke(question) returns documents, so a chain can call it without holding the store. search_kwargs k=2 is the same k.",
+                "The shipping question uses the retriever. These hits are passages. They are not the customer reply."
               ],
-              "file": "03.rag_pipeline_query.py",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Call", "What it does"],
+                  "rows": [
+                    ["similarity_search(question, k=2)", "store method · two nearest chunks"],
+                    ["as_retriever(search_kwargs={\"k\": 2})", "runnable · invoke(question) returns documents"]
+                  ]
+                }
+              ],
+              "file": "05.rag_pipeline_query.py",
               "day": 2,
               "module": "06. RAG Fundamentals",
               "snippet": "retriever = store.as_retriever()\ndocs = retriever.invoke(question)",
               "sample": "refund question → refund policy chunk"
             },
             {
-              "id": "lesson:day 2/06. RAG Fundamentals/04.grounded_answers.py",
+              "id": "lesson:day 2/06. RAG Fundamentals/06.grounded_answers.py",
               "kind": "lesson",
               "title": "Grounded answers",
-              "n": "04",
-              "learn": "The model answers only from the retrieved policy text.",
+              "n": "06",
+              "learn": "Answer only from the policy context. If it is missing, say you don't know.",
+              "demo": "rag",
+              "rag": "grounded",
               "notes": [
-                "The path is retriever, then context, then prompt, then model.",
-                "Retrieval alone is not a reply the customer can read.",
-                "An answer with no source list is hard to trust. Citations are next."
+                "Retriever k=3. The two lines are hits = retriever.invoke(question), then context joined from hits with a blank line between passages.",
+                "The system line is Acme order support. Use ONLY this policy context.",
+                "The question is “What is the refund window?” The model is groq:openai/gpt-oss-20b. Sources are not printed."
               ],
-              "file": "04.grounded_answers.py",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Step", "This file"],
+                  "rows": [
+                    ["Retriever", "k=3"],
+                    ["Prompt", "{context} and {question}"],
+                    ["Model", "groq:openai/gpt-oss-20b"]
+                  ]
+                }
+              ],
+              "file": "06.grounded_answers.py",
               "day": 2,
               "module": "06. RAG Fundamentals",
-              "snippet": "retriever → context → prompt → model",
-              "sample": "The refund window is 30 days."
+              "snippet": "chain.invoke({\"context\": context, \"question\": question})",
+              "sample": "What is the refund window?\nfrom refund_policy.txt, or “don't know”"
             },
             {
-              "id": "lesson:day 2/06. RAG Fundamentals/05.citations.py",
+              "id": "lesson:day 2/06. RAG Fundamentals/07.citations.py",
               "kind": "lesson",
               "title": "Citations",
-              "n": "05",
-              "learn": "Return the answer and the file names the chunks came from.",
+              "n": "07",
+              "learn": "Print the answer and the sorted file names on the hits.",
+              "demo": "rag",
+              "rag": "citations",
               "notes": [
-                "Each chunk already has metadata from indexing. The reply lists those sources.",
-                "A grounded sentence without a file name is hard to audit on an ORD ticket.",
-                "The fundamentals stop here. The next module wires the full app."
+                "Question: Who do I email about ORD tickets? Retriever k=3. The two lines match grounded answers: hits, then context.",
+                "contacts.txt says email help@acme.example.",
+                "sources is sorted({metadata.source}). The fundamentals stop at answer plus that list."
               ],
-              "file": "05.citations.py",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Printed", "This file"],
+                  "rows": [
+                    ["answer", "from the context only"],
+                    ["sources", "sorted file names"]
+                  ]
+                }
+              ],
+              "file": "07.citations.py",
               "day": 2,
               "module": "06. RAG Fundamentals",
-              "snippet": "answer + [doc.metadata[\"source\"] for doc in docs]",
-              "sample": "30 days\nsource: refund-policy.md"
+              "snippet": "sources = sorted({d.metadata[\"source\"] for d in hits})",
+              "sample": "Who do I email about ORD tickets?\nsources include contacts.txt"
             }
           ]
         },
@@ -2096,157 +2232,155 @@ export const course = {
           "title": "07. Building RAG Applications",
           "items": [
             {
-              "id": "lesson:day 2/07. Building RAG Applications/01.production_rag_setup.py",
+              "id": "lesson:day 2/07. Building RAG Applications/01.rag_langchain.py",
               "kind": "lesson",
-              "title": "Production rag setup",
+              "title": "RAG LangChain",
               "n": "01",
-              "learn": "One script: folder, documents, chunks that keep their source, retriever.",
+              "learn": "Ingest, then query, then answer. The model sends the reply back.",
+              "demo": "rag",
+              "rag": "lcel",
               "notes": [
-                "Ingest the directory into documents with metadata.",
-                "Chunk without dropping the source. Index. Build the retriever.",
-                "The earlier files were the steps. This file is those steps in one setup."
+                "ingest reads the fundamentals folder, chunks at 140 with overlap 30, and returns the store.",
+                "query returns the fallback for “quantum widget warranty on Mars” and does not build context.",
+                "“What is the refund window?” is sent to the model. answer returns the reply and the file names. The graph, the tool, the agent, and the eval call answer."
               ],
-              "file": "01.production_rag_setup.py",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Function", "What it does"],
+                  "rows": [
+                    ["ingest", "folder → documents → chunks → store"],
+                    ["query, no hint", "fallback · help@acme.example"],
+                    ["query, a hit", "file names and context"],
+                    ["answer", "model reply sent back, or the fallback"]
+                  ]
+                }
+              ],
+              "file": "01.rag_langchain.py",
               "day": 2,
               "module": "07. Building RAG Applications",
-              "snippet": "folder → documents → chunks → retriever",
-              "sample": "Acme policy folder indexed"
+              "snippet": "store = ingest(folder)\nquery(store, question)",
+              "sample": "refund window → sources and context\nMars warranty → fallback"
             },
             {
-              "id": "lesson:day 2/07. Building RAG Applications/02.prompt_composition.py",
-              "kind": "lesson",
-              "title": "Prompt composition",
-              "n": "02",
-              "learn": "Retrieved chunks become the {context} string the prompt fills.",
-              "notes": [
-                "Question, retriever, join the chunks, `ChatPromptTemplate` fills `{context}` and `{question}`, model answers.",
-                "That is the grounded-answer path as app wiring.",
-                "An empty retrieval still reaches the model unless the next file stops it."
-              ],
-              "file": "02.prompt_composition.py",
-              "day": 2,
-              "module": "07. Building RAG Applications",
-              "snippet": "context = \"\\n\\n\".join(doc.page_content for doc in docs)",
-              "sample": "prompt sees the refund chunk, then the question"
-            },
-            {
-              "id": "lesson:day 2/07. Building RAG Applications/03.no_result_handling.py",
-              "kind": "lesson",
-              "title": "No result handling",
-              "n": "03",
-              "learn": "If retrieval is not useful, do not invent a policy fact.",
-              "notes": [
-                "Prompt composition still calls the model when the context is empty.",
-                "A known policy question gets an answer. An off-topic question gets the fallback.",
-                "A good hit should also show its source. That is the next file."
-              ],
-              "file": "03.no_result_handling.py",
-              "day": 2,
-              "module": "07. Building RAG Applications",
-              "snippet": "if not docs:\n    return \"I don't have a policy for that.\"",
-              "sample": "refund window → answered\noff-topic → fallback"
-            },
-            {
-              "id": "lesson:day 2/07. Building RAG Applications/04.source_attribution.py",
-              "kind": "lesson",
-              "title": "Source attribution",
-              "n": "04",
-              "learn": "The reply includes the policy file names that backed it.",
-              "notes": [
-                "Support has to show which document the sentence came from.",
-                "Pair the answer with the source list from the retrieved chunks.",
-                "The chain and the graph that package this come next."
-              ],
-              "file": "04.source_attribution.py",
-              "day": 2,
-              "module": "07. Building RAG Applications",
-              "snippet": "return {\"answer\": answer, \"sources\": sources}",
-              "sample": "shipping answer\nsources: shipping-policy.md"
-            },
-            {
-              "id": "lesson:day 2/07. Building RAG Applications/05.rag_langchain.py",
-              "kind": "lesson",
-              "title": "Rag langchain",
-              "n": "05",
-              "learn": "One LCEL chain: retriever, prompt, model.",
-              "notes": [
-                "The pieces from the earlier files become one object you can call with a question.",
-                "The path is fixed. It always retrieves, then generates.",
-                "A branch or a tool choice needs a graph or an agent."
-              ],
-              "file": "05.rag_langchain.py",
-              "day": 2,
-              "module": "07. Building RAG Applications",
-              "snippet": "chain = retriever | prompt | model",
-              "sample": "What is the refund window? → 30 days"
-            },
-            {
-              "id": "lesson:day 2/07. Building RAG Applications/06.rag_langgraph.py",
+              "id": "lesson:day 2/07. Building RAG Applications/02.rag_langgraph.py",
               "kind": "lesson",
               "title": "Rag langgraph",
-              "n": "06",
-              "learn": "Retrieve and generate are nodes. You can see each step.",
+              "n": "02",
+              "learn": "answer is written in this file. retrieve finds passages. generate sends the reply back.",
+              "demo": "rag",
+              "rag": "graph",
               "notes": [
-                "LCEL is a straight chain. A graph makes the steps inspectable.",
-                "Same Acme policy corpus. Same idea as Day 1 nodes and edges.",
-                "This graph always retrieves. An agent should choose when to search."
+                "answer, query, and ingest are written at the top of this file. You can scroll to them.",
+                "retrieve writes whatever query returns. A Mars question is the fallback.",
+                "generate calls answer. A policy question comes back as the model reply. A Mars question comes back as the fallback."
               ],
-              "file": "06.rag_langgraph.py",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Node", "Writes"],
+                  "rows": [
+                    ["retrieve", "context"],
+                    ["generate", "answer"]
+                  ]
+                }
+              ],
+              "file": "02.rag_langgraph.py",
               "day": 2,
               "module": "07. Building RAG Applications",
               "snippet": "graph.add_edge(\"retrieve\", \"generate\")",
               "sample": "retrieve → generate → answer"
             },
             {
-              "id": "lesson:day 2/07. Building RAG Applications/07.rag_as_agent_tool.py",
+              "id": "lesson:day 2/07. Building RAG Applications/03.rag_as_agent_tool.py",
               "kind": "lesson",
               "title": "Rag as agent tool",
-              "n": "07",
-              "learn": "Policy search is a tool. The agent decides when to call it.",
+              "n": "03",
+              "learn": "Two tools. Same refund question and Mars fallback, plus a status question.",
+              "demo": "rag",
+              "rag": "tool",
               "notes": [
-                "`lookup_order` answers ORD-1. `search_policies` answers the refund window.",
-                "Always-on retrieve cannot mix those. The agent picks the tool.",
-                "Status stays structured. Policy stays retrieval."
+                "search_policies calls answer, so the tool sends the reply back, not only the passages."
+                "“Status of ORD-1?” uses lookup_order. The policy store is not searched.",
+                "“What is the refund window?” uses search_policies."
               ],
-              "file": "07.rag_as_agent_tool.py",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Question", "Tool"],
+                  "rows": [
+                    ["Status of ORD-1?", "lookup_order → shipped"],
+                    ["What is the refund window?", "search_policies → refund_policy.txt"]
+                  ]
+                }
+              ],
+              "file": "03.rag_as_agent_tool.py",
               "day": 2,
               "module": "07. Building RAG Applications",
               "snippet": "create_agent(model, tools=[lookup_order, search_policies])",
               "sample": "status of ORD-1 → lookup_order\nrefund window → search_policies"
             },
             {
-              "id": "lesson:day 2/07. Building RAG Applications/08.complete_rag_agent.py",
+              "id": "lesson:day 2/07. Building RAG Applications/04.complete_rag_agent.py",
               "kind": "lesson",
               "title": "Complete rag agent",
-              "n": "08",
-              "learn": "One agent: ORDERS tool, policy tool, Store, and context middleware.",
+              "n": "04",
+              "learn": "create_agent. Same refund and Mars examples, then status, save, and recall.",
+              "demo": "rag",
+              "rag": "complete",
               "notes": [
-                "Day 1 is the structured lookup. Day 2 adds middleware, memory, and policy search.",
-                "Those pieces were separate files. This is the first time the course wires them together.",
-                "A status question hits ORDERS. A policy question hits the retriever. A preference stays in the Store."
+                "search_policies calls answer from RAG LangChain, so the policy reply is generated before the agent speaks."
+                "Turns: status of ORD-1, the refund window, save contact=email, then preference plus ORD-2 plus refund days.",
+                "SummarizationMiddleware triggers at 10 messages and keeps 4. ClearToolUsesEdit triggers at 2500 tokens and keeps 3."
               ],
-              "file": "08.complete_rag_agent.py",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Turn", "What it uses"],
+                  "rows": [
+                    ["Status of ORD-1", "lookup_order · shipped"],
+                    ["Refund window", "search_policies"],
+                    ["Save contact=email", "Store · customers / cust-42"],
+                    ["Preference, ORD-2, refund days", "get_prefs, lookup, search"]
+                  ]
+                }
+              ],
+              "file": "04.complete_rag_agent.py",
               "day": 2,
               "module": "07. Building RAG Applications",
               "snippet": "create_agent(model, tools=[lookup_order, search_policies], store=store, middleware=[...])",
               "sample": "ORD-1 shipped\nrefund window from policy\nemail preference recalled"
             },
             {
-              "id": "lesson:day 2/07. Building RAG Applications/09.rag_evaluation.py",
+              "id": "lesson:day 2/07. Building RAG Applications/05.rag_evaluation.py",
               "kind": "lesson",
               "title": "Rag evaluation",
-              "n": "09",
-              "learn": "Check two things: did the right chunk come back, and is the answer grounded.",
+              "n": "05",
+              "learn": "One RAG path written here. evaluate checks the file. judge scores the reply.",
+              "demo": "rag",
+              "rag": "eval",
               "notes": [
-                "Retrieval: did the right source file come back?",
-                "Answer: a judge model scores whether the reply stays on the retrieved text. Treat the score as a flag, not a proof.",
-                "Run it when you change chunk size, overlap, or the embedding model, before a customer sees the change."
+                "ingest, query, and answer are written at the top. Same refund question and Mars fallback as the other files.",
+                "evaluate runs five cases. A case is yes when the expected file name is in the query text.",
+                "judge rates grounding, accuracy, and completeness from 1 to 5 and returns JSON. Treat the score as a flag, not a proof."
               ],
-              "file": "09.rag_evaluation.py",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Step", "This file"],
+                  "rows": [
+                    ["example 1", "What is the refund window?"],
+                    ["example 2", "quantum widget warranty on Mars"],
+                    ["evaluate", "five cases · expected file yes or no"],
+                    ["judge", "JSON scores 1–5 on the refund reply"]
+                  ]
+                }
+              ],
+              "file": "05.rag_evaluation.py",
               "day": 2,
               "module": "07. Building RAG Applications",
-              "snippet": "right_source = expected in retrieved_sources\njudge scores grounding",
-              "sample": "refund question retrieved refund-policy.md\nanswer flagged as grounded"
+              "snippet": "evaluate(store, cases)\njudge(store, question)",
+              "sample": "refund window → answer\nMars → fallback\nevaluate score\njudge JSON"
             }
           ]
         },
