@@ -2300,9 +2300,9 @@ export const course = {
               "demo": "rag",
               "rag": "tool",
               "notes": [
-                "search_policies calls answer, so the tool sends the reply back, not only the passages."
-                "“Status of ORD-1?” uses lookup_order. The policy store is not searched.",
-                "“What is the refund window?” uses search_policies."
+                "search_policies calls answer, so the tool sends the reply back, not only the passages.",
+                "Status of ORD-1 uses lookup_order. The policy store is not searched.",
+                "What is the refund window uses search_policies."
               ],
               "blocks": [
                 {
@@ -2329,7 +2329,7 @@ export const course = {
               "demo": "rag",
               "rag": "complete",
               "notes": [
-                "search_policies calls answer from RAG LangChain, so the policy reply is generated before the agent speaks."
+                "search_policies calls answer from RAG LangChain, so the policy reply is generated before the agent speaks.",
                 "Turns: status of ORD-1, the refund window, save contact=email, then preference plus ORD-2 plus refund days.",
                 "SummarizationMiddleware triggers at 10 messages and keeps 4. ClearToolUsesEdit triggers at 2500 tokens and keeps 3."
               ],
@@ -2447,8 +2447,572 @@ export const course = {
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "day:3",
+      "kind": "day",
+      "n": 3,
+      "title": "Day 3",
+      "groups": [
+        {
+          "id": "module:day 3/08. Advanced RAG & Agentic RAG",
+          "title": "08. Advanced RAG & Agentic RAG",
+          "items": [
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/01.rag_failure_analysis.py",
+              "kind": "lesson",
+              "title": "RAG failure analysis",
+              "n": "01",
+              "learn": "Measure the Day 2 path first. Same return ticket for every metric — then pick a fix.",
+              "demo": "rag-metrics",
+              "file": "01.rag_failure_analysis.py",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "notes": [
+                "**Anchor:** “How long do I have to return a product?” Ground truth = 30 days. Weak answer invents 70 days from tech-support noise.",
+                "**Pattern:** question → table → formula → what changes → which lesson fixes a low score.",
+                "**Classical IR:** spam box Precision ≈ 0.57, Recall = 0.80. Bridge: spam ≈ relevant chunk; spam box ≈ Top-K.",
+                "**Context precision:** order-aware. Scenario A (relevant on top) = 1.00. Scenario B (same chunks, buried) ≈ 0.59. Naive 3/5 stays 0.60 both times.",
+                "**Context recall:** |relevant retrieved| / |all relevant needed| = 2/3 ≈ 0.67 when R3 is missing. Do not call “3 of 5 retrieved” recall.",
+                "**Answer relevancy:** reverse-generate 3 questions from the answer → average cosine to the real query (example ≈ 0.57 when the reply drifts).",
+                "**Faithfulness:** atomic claims vs context. “70 days” fails; unused + label pass → 2/3 ≈ 0.67.",
+                "**Fix map:** low recall → 03–04 / 07–08 / 11; low precision → 05–06; incomplete → 09 / 12 / 14; bloat / faithfulness / relevancy → 10 / 13."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Metric", "Question it answers", "Classroom number", "Low score → try"],
+                  "rows": [
+                    ["Context precision", "Useful chunks near the top?", "A = 100% · B ≈ 59%", "05 rerank · 06 filter · 11 Top-K"],
+                    ["Context recall", "Did we fetch what we needed?", "2/3 ≈ 67%", "03–04 hybrid · 07–08 · 11 · 09"],
+                    ["Answer relevancy", "Does the reply address this ask?", "≈ 57% (drifted answer)", "10 compress · 06 · 13"],
+                    ["Faithfulness", "Does every claim stick to context?", "2/3 ≈ 67%", "10 grounded prompt"]
+                  ]
                 }
-              ]
+              ],
+              "snippet": "Context Precision = (Σ Precision@k for relevant k) / (# relevant in retrieved)\nContext Recall    = |relevant retrieved| / |all relevant needed|",
+              "sample": "Scenario A (relevant on top) → precision 1.00\nScenario B (same chunks, buried) → precision ≈ 0.59\nR3 missing → recall 2/3 ≈ 0.67\nInvented 70 days → faithfulness 2/3"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/02.semantic_retrieval.py",
+              "kind": "lesson",
+              "title": "Semantic retrieval",
+              "n": "02",
+              "learn": "One step: find chunks by meaning. Dense vectors. The Day 3 ladder starts here.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "02.semantic_retrieval.py",
+              "notes": [
+                "**Concept:** semantic retrieval embeds the ticket and ranks passages by similarity. Output = ranked chunks — not yet a full RAG answer.",
+                "**Dense search:** every dimension is a learned signal, not a single word. Strong on paraphrase (“send it back” ≈ “return”).",
+                "**RAG vs retrieve:** RAG = retrieve those passages → put them in the prompt → generate. This file only does the retrieve step.",
+                "**Use when:** the ask is about meaning, not a rare ID. **Weak when:** ORD-88421, VIP phone, SKU — exact tokens blur.",
+                "**Example ticket:** “How long do I have to send an item back after it arrives?” → refund_policy chunks rise by meaning.",
+                "**Mix-up:** embedding search is not BM25. Next lesson adds sparse search on the same ticket."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Idea", "This file"],
+                  "rows": [
+                    ["Input", "Acme paraphrase ticket (return window)"],
+                    ["Method", "Ollama nomic-embed-text + InMemoryVectorStore"],
+                    ["Output", "Top chunks by cosine / similarity"],
+                    ["Metric it moves", "Context recall on paraphrase asks"]
+                  ]
+                }
+              ],
+              "snippet": "hits = store.similarity_search(QUESTION, k=3)",
+              "sample": "ticket: How long do I have to send an item back after it arrives?\n=== semantic ===\n  → refund_policy.txt: Customers may request a refund within 45 days..."
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/03.bm25.py",
+              "kind": "lesson",
+              "title": "BM25",
+              "n": "03",
+              "learn": "Sparse search on top of 02. Exact tokens win. Paraphrase is weaker.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "03.bm25.py",
+              "notes": [
+                "**KEEP:** semantic from 02 = dense (every dimension is a learned signal).",
+                "**NEW:** BM25 = sparse — mostly zeros; only terms that appear get weight. Strong on exact tokens, weak on paraphrase.",
+                "**Use when:** low recall because the ticket needs a phone, ORD-*, SKU, or other rare string embeddings blur.",
+                "**Example:** same paraphrase ticket as 02 (semantic lane), plus EXACT = “VIP desk phone +1-555-0100” (BM25 lane).",
+                "**Mix-up:** BM25 does not replace embeddings. You usually keep both and merge in 04."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Lane", "Ticket", "Who wins"],
+                  "rows": [
+                    ["Dense (KEEP)", "How long do I have to send an item back…", "Semantic / paraphrase"],
+                    ["Sparse (NEW)", "VIP desk phone +1-555-0100", "BM25 / exact token"]
+                  ]
+                }
+              ],
+              "snippet": "bm25 = BM25Okapi([chunk.page_content.lower().split() for chunk in chunks])",
+              "sample": "=== KEEP: semantic ===\n  → refund_policy…\n=== bm25 ===\n  paraphrase: …\n  exact token: contacts.txt (VIP phone)"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/04.hybrid_search.py",
+              "kind": "lesson",
+              "title": "Hybrid search",
+              "n": "04",
+              "learn": "RRF merges semantic + BM25 into one shortlist. High on both lists beats winning only one.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "04.hybrid_search.py",
+              "notes": [
+                "**KEEP:** semantic + BM25. **NEW:** Reciprocal Rank Fusion — one shortlist from both ranked lists.",
+                "**Formula:** score(d) = Σ 1/(k + rank + 1). This file uses 0-based rank from enumerate, so +1 makes place 1-based.",
+                "**Why k=60:** without k, #1 is twice #2 (1.0 vs 0.5). With k=60, #1 is 1/61 and #2 is 1/62 — almost equal — so “high on both lists” beats “won only one list by a lot.”",
+                "**Use when:** the ticket mixes meaning and exact tokens (order id + return intent).",
+                "**Example ticket:** “Can I return ORD-88421 and get money back to my card?”",
+                "**Classroom arithmetic (k=60):** refund on both lists ≈ 0.0325; shipping strong on one ≈ 0.0323; contacts on one list only ≈ 0.0161 → refund wins."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Doc", "Semantic rank", "BM25 rank", "RRF idea"],
+                  "rows": [
+                    ["refund", "0", "1", "1/61 + 1/62 ≈ 0.0325 (wins)"],
+                    ["shipping", "2", "0", "1/63 + 1/61 ≈ 0.0323"],
+                    ["contacts", "1", "missing", "1/62 ≈ 0.0161"]
+                  ]
+                }
+              ],
+              "snippet": "score(d) = Σ 1 / (RRF_K + rank + 1)   # RRF_K = 60",
+              "sample": "=== KEEP: semantic (from 02) ===\n=== KEEP: bm25 (from 03) ===\n=== NEW: hybrid RRF ===\n  → refund_policy leads the fused list"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/05.reranking.py",
+              "kind": "lesson",
+              "title": "Reranking",
+              "n": "05",
+              "learn": "Cross-encoder re-scores the hybrid shortlist. Fixes low context precision — order matters.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "05.reranking.py",
+              "notes": [
+                "**KEEP:** semantic + BM25 + RRF pool. **NEW:** cross-encoder scores (question, chunk) pairs on that shortlist only.",
+                "**Bi-encoder:** encode question and chunk separately, then compare. Fast → whole corpus (02 / hybrid recall).",
+                "**Cross-encoder:** read question and chunk together → one relevance score. Accurate, slow → never on the full index.",
+                "**Why after retrieve?** Thousands of chunks × one slow call each is too costly. Hybrid grabs ~6; cross-encoder ranks those 6 → top 3.",
+                "**RRF vs rerank:** RRF is a cheap merge of ranks (no model). Rerank reads meaning carefully for the LLM’s top context.",
+                "**Metric:** same pool, better order → **context precision** rises (lesson 01 Scenario A vs B).",
+                "**Example ticket:** “Can I return ORD-88421 and get money back to my card?” POOL_K=6, TOP_N=3."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Step", "What it does", "Cost"],
+                  "rows": [
+                    ["1 · Hybrid RRF", "Good recall, one shortlist (~6)", "Cheap"],
+                    ["2 · Cross-encoder", "Better precision on that shortlist", "Expensive — only on ~6"],
+                    ["Skip if", "Top of hybrid is already clean", "Save latency"]
+                  ]
+                }
+              ],
+              "snippet": "pool = hybrid_search(..., k=POOL_K)\nranked = rerank(QUESTION, pool, top_n=TOP_N)",
+              "sample": "=== KEEP: hybrid pool (from 04) ===\n  → mixed sources possible\n=== NEW: cross-encoder rerank ===\n  → refund chunks climb to the top"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/06.metadata_filtering.py",
+              "kind": "lesson",
+              "title": "Metadata filtering",
+              "n": "06",
+              "learn": "Cut to the known lane (topic=refund) before the expensive rerank.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "06.metadata_filtering.py",
+              "notes": [
+                "**KEEP:** hybrid + cross-encoder. **NEW:** filter topic=refund first when the desk already knows the case type.",
+                "**Why required:** hybrid + rerank still search the whole corpus. A return ticket can pull shipping/contacts that share “ORD-*” or “days” — noise hurts precision and wastes the cross-encoder.",
+                "**Use when:** topic, tenant, date, or ACL is already known. **Skip when:** the ticket needs two topics (refund timing AND who to email) — over-filtering hides contacts.",
+                "**Example ticket:** “Can I return ORD-88421 and get money back to my card?” Contrast: open hybrid pool vs filtered refund-only pool, then rerank.",
+                "**Metric:** lifts **context precision** by removing known-wrong lanes early."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Path", "What you see"],
+                  "rows": [
+                    ["No filter", "refund + shipping + contacts can all appear"],
+                    ["topic=refund", "Search cut to refund_policy before rerank"],
+                    ["Do not filter", "Two-desk ticket (refund + email) — use 09 instead"]
+                  ]
+                }
+              ],
+              "snippet": "filtered_pool = hybrid_search(..., doc_filter=only_refund)\nranked = rerank(QUESTION, filtered_pool)",
+              "sample": "=== KEEP: hybrid pool (no filter) ===\n  → mixed topics\n=== NEW: filter topic=refund ===\n  → refund only → rerank"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/07.query_rewriting.py",
+              "kind": "lesson",
+              "title": "Query rewriting",
+              "n": "07",
+              "learn": "Messy chat → one clean search string, then filter → hybrid → rerank.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "07.query_rewriting.py",
+              "notes": [
+                "**KEEP:** filter → hybrid → cross-encoder. **NEW:** rewrite the raw chat into a clean query first.",
+                "**Why:** typos, slang, abbreviations (“snd back”, “money 2 my card”) and paraphrase that misses policy terms (“send it back” vs “refund”) make the raw string a bad search query → low recall/precision.",
+                "**Use when:** one intent, dirty wording. **Not when:** query is already clear; two different asks (09); or one wording is not enough and you need many phrasings (08).",
+                "**Example ticket:** “uuh can i snd back ORD-88421?? money 2 my card pls” → rewrite → filter → hybrid → rerank.",
+                "**Metric:** primarily **context recall** (and often precision) on messy chat."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Stage", "Example"],
+                  "rows": [
+                    ["Raw chat", "uuh can i snd back ORD-88421?? money 2 my card pls"],
+                    ["Rewrite", "clean return / refund + ORD-* wording"],
+                    ["Then", "filter → hybrid → cross-encoder (KEEP stack)"]
+                  ]
+                }
+              ],
+              "snippet": "clean = rewrite(QUESTION)\npool = hybrid_search(store, bm25, chunks, clean, ...)",
+              "sample": "raw → rewrite → filtered hybrid pool → rerank top 3"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/08.multi_query_retrieval.py",
+              "kind": "lesson",
+              "title": "Multi-query retrieval",
+              "n": "08",
+              "learn": "Same need, several phrasings. Merge unique chunks, then rerank once.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "08.multi_query_retrieval.py",
+              "notes": [
+                "**KEEP:** filter → hybrid → rerank. **NEW:** several phrasings of the same ticket; merge unique chunks; rerank once.",
+                "**Why:** one clean query (even after 07) can still miss useful lines. Different phrasings hit different policy sentences.",
+                "**Use when:** recall is low but there is still **one** information need. **Not when:** latency is tight (N retrieves + LLM for variants), or the message asks two different things (09).",
+                "**Vs 07 / 09:** rewrite = one better string. Multi-query = same need, many strings. Decompose = different needs.",
+                "**Example ticket:** “Can I return ORD-88421 and get money back to my card?” said three ways → merge → rerank."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Pattern", "What it means"],
+                  "rows": [
+                    ["07 rewrite", "One messy ask → one clean query"],
+                    ["08 multi-query", "One need → many phrasings → merge"],
+                    ["09 decompose", "Two needs → split → retrieve each"]
+                  ]
+                }
+              ],
+              "snippet": "for variant in variants:\n    merge unique hybrid hits\nrerank once on the merged pool",
+              "sample": "3 variants → merged pool → one cross-encoder pass → top 3"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/09.query_decomposition.py",
+              "kind": "lesson",
+              "title": "Query decomposition",
+              "n": "09",
+              "learn": "Split a two-part ticket. Retrieve each part. Stack context. Fixes incomplete coverage.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "09.query_decomposition.py",
+              "notes": [
+                "**KEEP:** hybrid → cross-encoder per sub-question. **NEW:** split the ticket, run the pipeline per part, stack context.",
+                "**Why:** one message asks TWO things (refund timing AND who to email). A single search often returns only one source → **INCOMPLETE**.",
+                "**Use when:** multi-part ticket. **Not when:** one clear ask — use 07 or 08 instead.",
+                "**Vs 08:** multi-query = same need, many phrasings. Decompose = different needs.",
+                "**Do not over-filter with 06** when both desks are needed.",
+                "**Example:** “If I return ORD-88421, how long until the refund hits my card, and who do I email about the ticket?”"
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Sub-ask", "Likely source"],
+                  "rows": [
+                    ["How long until refund hits the card?", "refund_policy.txt"],
+                    ["Who do I email about the ticket?", "contacts.txt"]
+                  ]
+                }
+              ],
+              "snippet": "parts = decompose(QUESTION)\nfor part in parts:\n    stack hybrid → rerank hits",
+              "sample": "part A → refund_policy\npart B → contacts\nstacked context covers both"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/10.contextual_compression.py",
+              "kind": "lesson",
+              "title": "Contextual compression",
+              "n": "10",
+              "learn": "Shrink reranked context, then answer only from what remains. Faithfulness and relevancy.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "10.contextual_compression.py",
+              "notes": [
+                "**KEEP:** filter → hybrid → rerank. **NEW:** compress, then grounded answer.",
+                "**Why compress:** reranked chunks can still be long — cost, truncation, distraction (**CONTEXT_BLOAT** / weaker faithfulness).",
+                "**Extractor:** keep only original sentences that answer the question (no rewrite). Prefer for support/policy — wording stays faithful.",
+                "**Summarizer:** rewrite a shorter version for the question. Prefer for long narrative; risk dropping exact numbers.",
+                "**Grounded prompt:** “answer ONLY from context” — without it the model invents portals, fees, timelines.",
+                "**Example ticket:** “Can I return ORD-88421 and get money back to my card?”",
+                "**Metrics:** **faithfulness** and **answer relevancy** (lesson 01)."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Compressor", "What it does", "Prefer when"],
+                  "rows": [
+                    ["Extractor", "Keep original sentences", "Policy / exact wording matters"],
+                    ["Summarizer", "Rewrite shorter for the ask", "Long narrative docs"],
+                    ["Grounded prompt", "Answer only from context", "Always after compress in this file"]
+                  ]
+                }
+              ],
+              "snippet": "compressed = extract_or_summarize(ranked)\nanswer = grounded_prompt(QUESTION, compressed)",
+              "sample": "reranked pool → extractor / summarizer → grounded reply (no invented portal)"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/11.parent_child_retrieval.py",
+              "kind": "lesson",
+              "title": "Parent-child retrieval",
+              "n": "11",
+              "learn": "Search small children. Generate from the parent. Also tune Top-K when recall/precision fail.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "11.parent_child_retrieval.py",
+              "notes": [
+                "**Idea:** child = search unit (precise hit). Parent = generation unit (fuller policy section).",
+                "**Why:** small chunks match well but starve the LLM; large chunks match poorly or dump whole files into the prompt.",
+                "**Use when:** eval shows right document, wrong/incomplete sentence (chunking fault).",
+                "**Top-K tuning:** low recall → larger K / better embedder / different child size. Low precision → smaller K (then rerank/filter). Do not raise K “just in case.”",
+                "**Not required** when docs are already short (one idea per file).",
+                "**Example ticket:** “Can I return ORD-88421 and get money back to my card?”"
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Knob", "If low recall", "If low precision"],
+                  "rows": [
+                    ["Top-K", "Try larger K", "Try smaller K"],
+                    ["Chunk role", "Child for search", "Parent for generation"],
+                    ["Next", "Embedder / child size", "Then 05 rerank / 06 filter"]
+                  ]
+                }
+              ],
+              "snippet": "child_hits = child_store.similarity_search(QUESTION, k=CHILD_K)\nparents = unique parents of those children",
+              "sample": "child hit → parent refund_policy.txt for generation\nTop-K too small misses; too large adds noise"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/12.iterative_retrieval.py",
+              "kind": "lesson",
+              "title": "Iterative retrieval",
+              "n": "12",
+              "learn": "Retrieve, check coverage, refine, retrieve again — until both sources appear or max rounds.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "12.iterative_retrieval.py",
+              "notes": [
+                "**Same two-part ticket as 09.** Loop: retrieve → see which sources you have → ask for ONE new query → retrieve again.",
+                "**Why:** first pass often covers only part of a multi-part ticket (**INCOMPLETE**).",
+                "**Use when:** coverage checks fail (expected contacts, only got refund), or you prefer react-on-miss over always decomposing every message.",
+                "**Vs 09:** decompose plans the parts up front, then retrieves each. Iterative retrieves first, then fills gaps.",
+                "**Not required** for a single clear ask that already returns enough sources.",
+                "**Example:** “If I return ORD-88421, how long until the refund hits my card, and who do I email…?” Stop when refund + contacts are both found."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Round", "What happens"],
+                  "rows": [
+                    ["1", "Retrieve on the full ticket — often refund only"],
+                    ["2", "Notice contacts missing → new query for email/desk"],
+                    ["Stop", "Both sources present, or max rounds"]
+                  ]
+                }
+              ],
+              "snippet": "while missing sources and rounds < max:\n    retrieve → update coverage → refine query",
+              "sample": "round 1: refund_policy\nround 2: + contacts\ncoverage complete"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/13.agent_driven_retrieval.py",
+              "kind": "lesson",
+              "title": "Agent-driven retrieval",
+              "n": "13",
+              "learn": "The model decides whether to search. Return ticket → tool. Chitchat → skip.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "13.agent_driven_retrieval.py",
+              "notes": [
+                "**Concept:** same desk agent. Bind `search_policies`. LangGraph tools_condition routes tool calls.",
+                "**Use when:** not every message needs RAG — small talk would only add noise and hurt **answer relevancy**.",
+                "**Example A:** “Can I return ORD-88421 and get money back to my card?” → should call search_policies.",
+                "**Example B:** “thanks, that helps” → skip retrieval (tool rounds = 0).",
+                "**Mix-up:** this is not hybrid or rerank. It is the gate: search or not."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Message", "Expected"],
+                  "rows": [
+                    ["Can I return ORD-88421…?", "tool rounds ≥ 1 · policy answer"],
+                    ["thanks, that helps", "tool rounds = 0 · short reply"]
+                  ]
+                }
+              ],
+              "snippet": "graph.add_conditional_edges(\"chatbot\", tools_condition)",
+              "sample": "ticket (should search) → tool rounds: 1\nchitchat (skip search) → tool rounds: 0"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/14.multi_source_retrieval.py",
+              "kind": "lesson",
+              "title": "Multi-source retrieval",
+              "n": "14",
+              "learn": "Policies in one index, contacts in another. Query each, then merge — real desk ACLs.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "14.multi_source_retrieval.py",
+              "notes": [
+                "**Why:** companies do not ship one flat store. Refund text in a policy wiki; VIP email/phone in a contacts CRM. One index either mixes permissions or misses a desk.",
+                "**Use when:** corpora are owned separately, refreshed on different clocks, or must not share the same ACL — and one ticket still needs both.",
+                "**Not required** when everything already lives in one small index with one ACL (early ladder files 02–11).",
+                "**Example:** same two-part ticket as 09/12 — refund timing from policies index, who to email from contacts index, then merge.",
+                "**Metric:** fixes **incomplete** coverage across systems (lesson 01)."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Corpus", "Files", "Answers"],
+                  "rows": [
+                    ["policies", "refund_policy.txt, shipping_policy.txt", "When does the refund hit?"],
+                    ["contacts", "contacts.txt", "Who do I email?"],
+                    ["Merge", "both hit lists", "One stacked context for the ticket"]
+                  ]
+                }
+              ],
+              "snippet": "policy_hits = policies.similarity_search(QUESTION, k=2)\ncontact_hits = contacts.similarity_search(QUESTION, k=2)",
+              "sample": "ingest [policies] …\ningest [contacts] …\nmerged → refund_policy + contacts"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/15.hyde.py",
+              "kind": "lesson",
+              "title": "HyDE (placeholder)",
+              "n": "15",
+              "learn": "Placeholder. Embed a hypothetical answer passage, then search — sibling of rewrite / multi-query.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "15.hyde.py",
+              "notes": [
+                "**Status:** not built yet — comment stub only.",
+                "**Idea:** model writes a short fake passage for the ticket; embed that; retrieve. Often helps when user wording is far from policy wording.",
+                "**Family:** sits next to 07 rewrite and 08 multi-query.",
+                "**Use when:** one clear need, vocabulary gap. **Skip when:** exact tokens matter more (BM25 / hybrid) or the ask is two desks (09)."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Step", "What happens"],
+                  "rows": [
+                    ["1", "Ticket in"],
+                    ["2", "LLM drafts a hypothetical policy-style answer"],
+                    ["3", "Embed that draft → similarity search"],
+                    ["4", "(Later) merge with normal query retrieve"]
+                  ]
+                }
+              ],
+              "snippet": "# placeholder — HyDE demo not written yet",
+              "sample": "coming later · Acme return ticket → hypothetical passage → retrieve"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/16.crag_self_rag.py",
+              "kind": "lesson",
+              "title": "CRAG / Self-RAG (placeholder)",
+              "n": "16",
+              "learn": "Placeholder. Grade retrieved docs, then rewrite / retry / refuse — corrective loop in code.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "16.crag_self_rag.py",
+              "notes": [
+                "**Status:** not built yet — comment stub only.",
+                "**Idea:** after retrieve, score relevance. Good → generate. Weak → rewrite and retrieve again. Bad → refuse or fallback.",
+                "**Today nearby:** 01 diagnoses on paper; 12 iterates on coverage; 13 decides search vs skip.",
+                "**This file will be:** the grade → branch → retry / refuse graph."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Grade", "Next"],
+                  "rows": [
+                    ["Relevant", "Generate"],
+                    ["Ambiguous / weak", "Rewrite → retrieve again"],
+                    ["Irrelevant", "Refuse or fallback (e.g. I don't know / web)"]
+                  ]
+                }
+              ],
+              "snippet": "# placeholder — CRAG / Self-RAG loop not written yet",
+              "sample": "coming later · retrieve → grade → rewrite | generate | refuse"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/17.adaptive_router.py",
+              "kind": "lesson",
+              "title": "Adaptive router (placeholder)",
+              "n": "17",
+              "learn": "Placeholder. Ticket complexity → which strategy (skip, rewrite, hybrid, decompose, multi-source).",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "17.adaptive_router.py",
+              "notes": [
+                "**Status:** not built yet — comment stub only.",
+                "**Idea:** one diagnose/router node picks a branch instead of always running the full ladder.",
+                "**Maps to:** 13 skip · 07/15 rewrite-HyDE · 04–05 hybrid+rerank · 09/12 multi-part · 14 multi-source.",
+                "**Earlier discussion:** LangGraph fix-router shape — this is where that demo will land."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["If the ticket looks like", "Route toward"],
+                  "rows": [
+                    ["Chitchat", "13 skip search"],
+                    ["Slang / typos", "07 rewrite or 15 HyDE"],
+                    ["One clear policy ask", "04 hybrid → 05 rerank"],
+                    ["Two asks", "09 decompose or 12 iterative"],
+                    ["Needs two corpora", "14 multi-source"]
+                  ]
+                }
+              ],
+              "snippet": "# placeholder — adaptive router graph not written yet",
+              "sample": "coming later · diagnose → branch → why"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/18.graphrag.py",
+              "kind": "lesson",
+              "title": "GraphRAG (placeholder)",
+              "n": "18",
+              "learn": "Placeholder. Optional later — entity/relation graph over (or beside) flat chunk search.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "18.graphrag.py",
+              "notes": [
+                "**Status:** not built yet — comment stub only.",
+                "**Idea:** query links (order ↔ policy ↔ contact) when flat Top-K cannot follow multi-hop relations.",
+                "**Not required** for the Acme flat-file ladder 02–14.",
+                "**Optional later** when the corpus is large and relationship-heavy."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Approach", "Strength"],
+                  "rows": [
+                    ["Flat chunk RAG (02–14)", "Simple Acme policies"],
+                    ["GraphRAG (this placeholder)", "Multi-hop entity links across docs"]
+                  ]
+                }
+              ],
+              "snippet": "# placeholder — GraphRAG demo not written yet",
+              "sample": "coming later · optional track"
             }
           ]
         }
+      ]
+    }
+  ]
+}

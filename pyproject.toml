@@ -21,6 +21,7 @@ dependencies = [
     "strands-agents>=1.53.0",
     "langgraph-checkpoint-sqlite>=3.1.1",
     "langchain-ollama>=1.1.0",
+    "sentence-transformers>=6.1.0",
 ]
 
 [project.optional-dependencies]

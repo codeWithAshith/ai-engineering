@@ -20,6 +20,7 @@ import { RefundCases } from "./RefundCases.jsx";
 import { ResponseShape } from "./ResponseShape.jsx";
 import { ReactiveLoop } from "./ReactiveLoop.jsx";
 import { GraphWalk } from "./GraphWalk.jsx";
+import { RagMetricsLab } from "./RagMetricsLab.jsx";
 import { TermsCarousel } from "./TermsCarousel.jsx";
 import { course } from "./course.js";
 import { termsDeck, termsHref } from "./terms.js";
@@ -373,6 +374,12 @@ function Article({ item, prev, next }) {
               title="Day 2: Context Engineering & RAG Systems"
               detail="Fitting token windows, trimming noisy messages, long-term memory stores, and grounded retrieval over enterprise policies."
             />
+            <HomeLink
+              href="#/d/3"
+              tag="Day 3"
+              title="Day 3: Advanced RAG & Agentic RAG"
+              detail="Measure failures first (precision, recall, relevancy, faithfulness), then climb the retrieval ladder and review a LangGraph fix router."
+            />
           </ul>
         </div>
       </PageFrame>
@@ -417,8 +424,8 @@ function Article({ item, prev, next }) {
   if (item.kind === "coming-soon") {
     return (
       <PageFrame
-        title="Days 3 to 10 wait until we publish them."
-        lede="This site is Engineering Notes, Day 1, and Day 2."
+        title="Days 4 to 10 wait until we publish them."
+        lede="This site is Engineering Notes, Day 1, Day 2, and Day 3."
         prev={linkFor(prev, hrefFor)}
         next={linkFor(next, hrefFor)}
       />
@@ -453,6 +460,7 @@ function Article({ item, prev, next }) {
       {item.demo === "human-pause" ? <HumanPause /> : null}
       {item.demo === "memory" ? <MemoryLab id={item.memory} /> : null}
       {item.demo === "rag" ? <RagLab id={item.rag} /> : null}
+      {item.demo === "rag-metrics" ? <RagMetricsLab /> : null}
       {item.demo === "splitters" ? <SplitterLab /> : null}
       {item.demo === "embedding" ? <EmbeddingLab /> : null}
       {item.demo === "refund-cases" ? <RefundCases /> : null}
