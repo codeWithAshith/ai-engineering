@@ -1,7 +1,7 @@
 # 10 — Contextual compression + grounded answer
 #
 # KEEP: filter → hybrid → cross-encoder rerank.
-# NEW: compress with (1) extractor and (2) summarizer, then grounded answer.
+# NEW: (1) compress with extractor and summarizer, then (2) grounded answer.
 #
 # Why / when compression is required:
 #   Reranked chunks can still be long. Extra sentences add cost, risk truncation,
@@ -13,8 +13,21 @@
 #   Summarizer — rewrite a shorter version for the question.
 #                Prefer for long narrative docs; risk dropping exact numbers.
 #
-# Why / when grounded prompt is required:
-#   Without "answer ONLY from context", the model invents portals/fees/timelines.
+# Why / when grounded answer is required:
+#   Compression shrinks context. Generation still needs a hard rule: answer ONLY
+#   from that context (no world knowledge, no invented fees/portals/timelines).
+#   Without grounding, the model can still hallucinate even on short text.
+#   Metric: FAITHFULNESS (and often answer relevancy) in 01.rag_failure_analysis.py.
+#
+# Grounded answer (this file):
+#   System prompt: "Answer ONLY from the policy context below."
+#   If context does not say → exact fallback: "I don't have policy context for that."
+#   Desk default here: ground on EXTRACTOR output (faithful wording), not summarizer.
+#
+# Vs Day 2 grounded answers:
+#   Day 2 grounded on raw retrieved chunks. Here we ground on compressed context
+#   after filter → hybrid → rerank → extract — same rule, cleaner prompt.
+#
 # Full failure map: 01.rag_failure_analysis.py
 
 from pathlib import Path
@@ -177,6 +190,7 @@ final_docs = [doc for doc, _ in ranked]
 extracted = [extract(doc, QUESTION) for doc in final_docs]
 summarized = [summarize(doc, QUESTION) for doc in final_docs]
 
+# === NEW: grounded answer (ONLY from compressed context) ===
 # Desk default for policy: ground on extracted text (faithful wording).
 extract_for_answer = [doc for doc in extracted if doc.page_content.upper() != "NONE"]
 context = "\n\n".join(f"[{doc.metadata['source']}] {doc.page_content}" for doc in extract_for_answer)

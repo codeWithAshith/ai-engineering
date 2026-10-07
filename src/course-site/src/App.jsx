@@ -378,7 +378,7 @@ function Article({ item, prev, next }) {
               href="#/d/3"
               tag="Day 3"
               title="Day 3: Advanced RAG & Agentic RAG"
-              detail="Measure failures first (precision, recall, relevancy, faithfulness), then climb the retrieval ladder and review a LangGraph fix router."
+              detail="Measure failures first, climb the retrieval ladder (hybrid, HyDE, CRAG, adaptive routing), then the production agentic RAG capstone."
             />
           </ul>
         </div>

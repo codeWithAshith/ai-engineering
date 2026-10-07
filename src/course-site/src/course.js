@@ -2895,120 +2895,167 @@ export const course = {
             {
               "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/15.hyde.py",
               "kind": "lesson",
-              "title": "HyDE (placeholder)",
+              "title": "HyDE",
               "n": "15",
-              "learn": "Placeholder. Embed a hypothetical answer passage, then search — sibling of rewrite / multi-query.",
+              "learn": "Embed a hypothetical policy passage, then search. Sibling of rewrite / multi-query when wording gaps hurt recall.",
               "day": 3,
               "module": "08. Advanced RAG & Agentic RAG",
               "file": "15.hyde.py",
               "notes": [
-                "**Status:** not built yet — comment stub only.",
-                "**Idea:** model writes a short fake passage for the ticket; embed that; retrieve. Often helps when user wording is far from policy wording.",
-                "**Family:** sits next to 07 rewrite and 08 multi-query.",
-                "**Use when:** one clear need, vocabulary gap. **Skip when:** exact tokens matter more (BM25 / hybrid) or the ask is two desks (09)."
+                "**KEEP:** semantic retrieve with the raw ticket (02).",
+                "**NEW:** LLM writes a short fake policy passage; embed that passage; similarity_search on it.",
+                "**Why:** chat wording (“send it back”) sits far from policy wording (“refund within 45 days of delivery”). Document-shaped vectors often lift recall.",
+                "**Vs 07:** rewrite stays a question string. HyDE is document-shaped.",
+                "**Vs 08:** multi-query = many question phrasings. HyDE = one hypothetical doc.",
+                "**Skip when:** exact tokens (BM25/hybrid), two desks (09), or the query already matches policy language.",
+                "**Example ticket:** “How long do I have to send an item back after it arrives?”"
               ],
               "blocks": [
                 {
                   "type": "table",
-                  "headers": ["Step", "What happens"],
+                  "headers": ["Path", "What you embed", "Shape"],
                   "rows": [
-                    ["1", "Ticket in"],
-                    ["2", "LLM drafts a hypothetical policy-style answer"],
-                    ["3", "Embed that draft → similarity search"],
-                    ["4", "(Later) merge with normal query retrieve"]
+                    ["KEEP · semantic", "raw ticket", "question"],
+                    ["NEW · HyDE", "fake policy passage from the LLM", "document"],
+                    ["07 rewrite", "cleaned search query", "question"],
+                    ["08 multi-query", "several cleaned queries", "questions"]
                   ]
                 }
               ],
-              "snippet": "# placeholder — HyDE demo not written yet",
-              "sample": "coming later · Acme return ticket → hypothetical passage → retrieve"
+              "snippet": "hyde_doc = hypothetical_passage(QUESTION)\nhits = store.similarity_search(hyde_doc, k=3)",
+              "sample": "KEEP: embed question → top chunks\nNEW: HyDE passage (refund / delivery wording)\nNEW: embed that passage → often stronger refund_policy hits"
             },
             {
               "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/16.crag_self_rag.py",
               "kind": "lesson",
-              "title": "CRAG / Self-RAG (placeholder)",
+              "title": "Production CRAG",
               "n": "16",
-              "learn": "Placeholder. Grade retrieved docs, then rewrite / retry / refuse — corrective loop in code.",
+              "learn": "Hybrid retrieve, then LLM-grade. Correct → refine + grounded answer. Ambiguous → LLM rewrite and retry. Incorrect → refuse.",
               "day": 3,
               "module": "08. Advanced RAG & Agentic RAG",
               "file": "16.crag_self_rag.py",
               "notes": [
-                "**Status:** not built yet — comment stub only.",
-                "**Idea:** after retrieve, score relevance. Good → generate. Weak → rewrite and retrieve again. Bad → refuse or fallback.",
-                "**Today nearby:** 01 diagnoses on paper; 12 iterates on coverage; 13 decides search vs skip.",
-                "**This file will be:** the grade → branch → retry / refuse graph."
+                "**CRAG:** LLM evaluator grades retrieved docs as correct / ambiguous / incorrect, then branches.",
+                "**Production shape:** hybrid RRF retrieve · LLM grade + knowledge refine · LLM rewrite · citations · bounded retries.",
+                "**Loop:** retrieve → grade → refine+generate | rewrite→retrieve | refuse. MAX_RETRIES=1.",
+                "**Vs 12:** iterative fills missing sources. CRAG grades relevance quality.",
+                "**Vs 13:** agent decides search up front. CRAG always retrieves, then corrects.",
+                "**Vs 19:** capstone adds adaptive routing + multi-source on top of this grade loop.",
+                "**Three tickets:** clear refund · vague money-back wording · SKU outside corpus."
               ],
               "blocks": [
                 {
                   "type": "table",
-                  "headers": ["Grade", "Next"],
+                  "headers": ["Grade", "Next", "Demo ticket"],
                   "rows": [
-                    ["Relevant", "Generate"],
-                    ["Ambiguous / weak", "Rewrite → retrieve again"],
-                    ["Irrelevant", "Refuse or fallback (e.g. I don't know / web)"]
+                    ["correct", "refine → grounded generate + citations", "Can I return ORD-88421…?"],
+                    ["ambiguous", "LLM rewrite → retrieve again", "weak / vague evidence (LLM decides)"],
+                    ["incorrect", "refuse / I don't know", "SKU-ACME-WIDGET stock price"]
                   ]
                 }
               ],
-              "snippet": "# placeholder — CRAG / Self-RAG loop not written yet",
-              "sample": "coming later · retrieve → grade → rewrite | generate | refuse"
+              "snippet": "evaluation = (prompt | GRADER).invoke(...)\ngraph.add_conditional_edges(\"grade\", after_grade, ...)\ngraph.add_edge(\"rewrite\", \"retrieve\")",
+              "sample": "correct → refine → generate + citations\nambiguous → rewrite#1 → retrieve → generate\nincorrect → refuse\n(slang ticket may still grade correct if hybrid hits are strong)"
             },
             {
               "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/17.adaptive_router.py",
               "kind": "lesson",
-              "title": "Adaptive router (placeholder)",
+              "title": "Adaptive router",
               "n": "17",
-              "learn": "Placeholder. Ticket complexity → which strategy (skip, rewrite, hybrid, decompose, multi-source).",
+              "learn": "LLM diagnoses ticket complexity → which strategy. LangGraph: diagnose writes route; the edge only reads it.",
               "day": 3,
               "module": "08. Advanced RAG & Agentic RAG",
               "file": "17.adaptive_router.py",
               "notes": [
-                "**Status:** not built yet — comment stub only.",
-                "**Idea:** one diagnose/router node picks a branch instead of always running the full ladder.",
-                "**Maps to:** 13 skip · 07/15 rewrite-HyDE · 04–05 hybrid+rerank · 09/12 multi-part · 14 multi-source.",
-                "**Earlier discussion:** LangGraph fix-router shape — this is where that demo will land."
+                "**13 vs 17:** 13 = search or not. 17 = which retrieve path to run.",
+                "**Production diagnose:** structured LLM picks route + why (+ cleaned_query / sub_queries). Keyword `looks_*` rules break on paraphrase.",
+                "**Pattern:** diagnose node writes `route` + `why`. Conditional edge is thin: `return state[\"route\"]`.",
+                "**Branches:** skip · rewrite→hybrid · hybrid · decompose · multi-source.",
+                "**Strategy nodes** are short stand-ins for 04/07/09/13/14 — the graph shape is the lesson.",
+                "**19** adds grade → retry on top of this router.",
+                "**Five tickets** in the file — each print shows route, why, and hits."
               ],
               "blocks": [
                 {
                   "type": "table",
-                  "headers": ["If the ticket looks like", "Route toward"],
+                  "headers": ["If the ticket looks like", "Route", "Lesson"],
                   "rows": [
-                    ["Chitchat", "13 skip search"],
-                    ["Slang / typos", "07 rewrite or 15 HyDE"],
-                    ["One clear policy ask", "04 hybrid → 05 rerank"],
-                    ["Two asks", "09 decompose or 12 iterative"],
-                    ["Needs two corpora", "14 multi-source"]
+                    ["Chitchat", "skip_search", "13"],
+                    ["Slang / typos", "rewrite_hybrid", "07 + 04"],
+                    ["One clear policy ask", "hybrid", "04"],
+                    ["Two policy asks", "decompose", "09"],
+                    ["Refund + who to email", "multi_source", "14"]
                   ]
                 }
               ],
-              "snippet": "# placeholder — adaptive router graph not written yet",
-              "sample": "coming later · diagnose → branch → why"
+              "snippet": "diagnosis = (prompt | ROUTER).invoke(...)\ngraph.add_conditional_edges(\"diagnose\", route_edge, {...})",
+              "sample": "CASE chitchat → skip_search\nCASE messy → rewrite_hybrid\nCASE one ask → hybrid\nCASE two policy asks → decompose\nCASE two corpora → multi_source"
             },
             {
               "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/18.graphrag.py",
               "kind": "lesson",
-              "title": "GraphRAG (placeholder)",
+              "title": "GraphRAG",
               "n": "18",
-              "learn": "Placeholder. Optional later — entity/relation graph over (or beside) flat chunk search.",
+              "learn": "Walk entities and relations across policy files. Contrast with flat Top-K on the same multi-hop ticket. Comments-only concept.",
               "day": 3,
               "module": "08. Advanced RAG & Agentic RAG",
               "file": "18.graphrag.py",
               "notes": [
-                "**Status:** not built yet — comment stub only.",
-                "**Idea:** query links (order ↔ policy ↔ contact) when flat Top-K cannot follow multi-hop relations.",
-                "**Not required** for the Acme flat-file ladder 02–14.",
-                "**Optional later** when the corpus is large and relationship-heavy."
+                "**Comments-only** — concept sketch in the `.py` file; no runnable demo.",
+                "**KEEP:** flat semantic retrieve (02) on the same ticket.",
+                "**NEW:** knowledge graph (nodes + edges). Seed entities from the question, walk a few hops, collect linked passages.",
+                "**Why:** multi-hop asks join facts in different files via ORD-* (refund timing + who to email).",
+                "**Teaching GraphRAG:** structure retrieval, not Microsoft community-summary GraphRAG. Same idea — links, not only vector distance.",
+                "**Skip when** every answer sits in one short chunk (early ladder).",
+                "**Example:** “If I return ORD-88421… refund hits… and who do I email?”"
               ],
               "blocks": [
                 {
                   "type": "table",
-                  "headers": ["Approach", "Strength"],
+                  "headers": ["Approach", "How it finds context", "Multi-hop strength"],
                   "rows": [
-                    ["Flat chunk RAG (02–14)", "Simple Acme policies"],
-                    ["GraphRAG (this placeholder)", "Multi-hop entity links across docs"]
+                    ["Flat chunk RAG", "Embed question → Top-K chunks", "May miss the second file"],
+                    ["GraphRAG (this file)", "Seed entity → walk relations → neighbor text", "Follows ORD-* across refund + contacts"],
+                    ["14 multi-source", "Fan-out separate indexes", "Corpuses, not entity links"]
                   ]
                 }
               ],
-              "snippet": "# placeholder — GraphRAG demo not written yet",
-              "sample": "coming later · optional track"
+              "snippet": "# seed entities from ticket → BFS along edges → collect linked passages\n# flat Top-K ranks by embed distance; GraphRAG follows ORD-* links",
+              "sample": "flat Top-2 → often refund only (incomplete)\ngraph walk ORD-* → RefundPolicy → Contacts / HelpEmail\ncoverage: refund + contacts = complete"
+            },
+            {
+              "id": "lesson:day 3/08. Advanced RAG & Agentic RAG/19.production_agentic_rag.py",
+              "kind": "lesson",
+              "title": "Production agentic RAG",
+              "n": "19",
+              "learn": "Capstone: LLM route → retrieve → LLM grade → answer / bounded rewrite-retry / refuse. Grounded answer + citations.",
+              "day": 3,
+              "module": "08. Advanced RAG & Agentic RAG",
+              "file": "19.production_agentic_rag.py",
+              "notes": [
+                "**13 vs 17 vs 19:** 13 = search or not. 17 = which strategy. 19 = strategy + CRAG grade loop + grounded answer.",
+                "**Production shape:** LLM diagnose (route) · LLM CRAG grade + refine · LLM rewrite · citations. No keyword `looks_*` gates.",
+                "**Loop:** route_ticket → retrieve_* → grade_docs → grounded_answer | rewrite_for_retry→retrieve | refuse.",
+                "**Grades:** correct → answer. ambiguous → one rewrite retry (MAX_RETRIES). incorrect → fallback.",
+                "**Chitchat** skips retrieve. **Out-of-corpus** SKU/stock → refuse after grade.",
+                "**Citations:** answer prompt asks for Sources:; state also keeps citation file names.",
+                "**Cap:** MAX_RETRIES=1 so ambiguous cannot loop forever."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Stage", "What it does", "From lesson"],
+                  "rows": [
+                    ["Route", "skip / rewrite_hybrid / hybrid / decompose / multi_source", "17 (+ 13)"],
+                    ["Retrieve", "Run that strategy", "04 · 07 · 09 · 14"],
+                    ["Grade", "correct · ambiguous · incorrect", "16 CRAG"],
+                    ["Branch", "answer · rewrite→retrieve · refuse", "16"],
+                    ["Answer", "Grounded + Sources line", "10"]
+                  ]
+                }
+              ],
+              "snippet": "graph.add_conditional_edges(\"grade_docs\", after_grade, {\"answer\": ..., \"rewrite\": ..., \"refuse\": ...})",
+              "sample": "chitchat → skip reply\nclear refund → grade=correct → grounded + citations\nSKU/stock → grade=incorrect → refuse"
             }
           ]
         }

@@ -306,6 +306,7 @@ export function RagMetricsLab() {
         <p className="m-0 mt-3 text-slate-600">
           02–04 teach how search works (dense / sparse / hybrid). 05–14 are the fixes named above.
           15–18 are placeholders (HyDE, CRAG/Self-RAG, adaptive router, GraphRAG).
+          19 is the production agentic RAG capstone placeholder.
         </p>
       </Section>
     </div>
