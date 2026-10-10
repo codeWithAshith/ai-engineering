@@ -21,7 +21,7 @@ wheels/
 .ruff_cache/
 __pycache__/
 
-# Local course content (GitHub: day 1–3, course-site)
+# Local course content (GitHub: day 1–3, day 5, course-site)
 src/**
 !src/.gitkeep
 !src/day 1/
@@ -30,8 +30,11 @@ src/**
 !src/day 2/**
 !src/day 3/
 !src/day 3/**
+!src/day 5/
+!src/day 5/**
 !src/course-site/
 !src/course-site/**
+src/**/__pycache__/
 src/course-site/node_modules/
 src/course-site/dist/
 

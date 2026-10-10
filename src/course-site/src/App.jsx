@@ -321,7 +321,7 @@ function Nav({ route, item, open, onGo }) {
         <div className="mt-5 pb-6">
           <p className="px-2.5 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">Later</p>
           <a className={navLinkClass(route.kind === "coming-soon")} href="#/soon" onClick={onGo}>
-            Days 3 to 10
+            Later days
           </a>
         </div>
       </div>
@@ -380,6 +380,12 @@ function Article({ item, prev, next }) {
               title="Day 3: Advanced RAG & Agentic RAG"
               detail="Measure failures first, climb the retrieval ladder (hybrid, HyDE, CRAG, adaptive routing), then the production agentic RAG capstone."
             />
+            <HomeLink
+              href="#/d/5"
+              tag="Day 5"
+              title="Day 5: Advanced Agent Architecture"
+              detail="Supervisors, workers, routers, critics, handoffs, shared state — and when multi-agent is worth the cost."
+            />
           </ul>
         </div>
       </PageFrame>
@@ -424,8 +430,8 @@ function Article({ item, prev, next }) {
   if (item.kind === "coming-soon") {
     return (
       <PageFrame
-        title="Days 4 to 10 wait until we publish them."
-        lede="This site is Engineering Notes, Day 1, Day 2, and Day 3."
+        title="Days 4, 6 to 10 wait until we publish them."
+        lede="This site is Engineering Notes, Day 1, Day 2, Day 3, and Day 5."
         prev={linkFor(prev, hrefFor)}
         next={linkFor(next, hrefFor)}
       />

@@ -3060,6 +3060,994 @@ export const course = {
           ]
         }
       ]
+    },
+    {
+      "id": "day:5",
+      "kind": "day",
+      "n": 5,
+      "title": "Day 5",
+      "groups": [
+        {
+          "id": "module:day 5/11. Advanced Agent Architecture",
+          "title": "11. Advanced Agent Architecture",
+          "items": [
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/01.supervisor_agents.py",
+              "kind": "lesson",
+              "title": "Supervisor agents",
+              "n": "01",
+              "learn": "Acme desk: LLM supervisor assigns policy / contacts workers (Day 2 corpus), then synthesizes one grounded reply.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "01.supervisor_agents.py",
+              "notes": [
+                "**Production pattern:** supervise (LLM assign) → specialist RAG workers → synthesize (LLM merge + Sources).",
+                "**Workers:** policy_worker = refund/shipping index; contacts_worker = contacts index. Same Day 2 data.",
+                "**Assignment:** policy | contacts | both (policy then contacts when the ticket needs both).",
+                "**Diagram:** Play the three ticket paths below — same GraphWalk style as Day 1 routing.",
+                "**Vs 04 router:** router ends at one specialist; supervisor comes back to merge briefs.",
+                "**Vs Day 3 · 19:** 19 routes retrieve strategies; 01 routes *agents* then synthesizes.",
+                "**Mix-up:** more workers is not always better — see 14 trade-offs."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Ticket shape", "Assignment", "Path"],
+                  "rows": [
+                    ["Return / refund to card", "policy", "policy_worker → synthesize"],
+                    ["Who do I email?", "contacts", "contacts_worker → synthesize"],
+                    ["Refund timing + who to email", "both", "policy → contacts → synthesize"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "supervisor",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: refund timing + who do I email? → assignment=both",
+                "steps": [
+                  {
+                    "label": "1 · Ticket",
+                    "detail": "If I return ORD-88421, how long until the refund hits, and who do I email?"
+                  },
+                  {
+                    "label": "2 · Supervise",
+                    "detail": "LLM writes assignment=both (needs policy + contact)."
+                  },
+                  {
+                    "label": "3 · Workers",
+                    "detail": "policy_worker (refund_policy) → contacts_worker (contacts.txt)."
+                  },
+                  {
+                    "label": "4 · Synthesize",
+                    "detail": "Lead merges briefs → one reply + Sources line."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "policy",
+                    "detail": "Refund-only ask → policy_worker → synthesize"
+                  },
+                  {
+                    "label": "contacts",
+                    "detail": "Who to email → contacts_worker → synthesize"
+                  },
+                  {
+                    "label": "both",
+                    "detail": "Refund + email → policy then contacts → synthesize"
+                  }
+                ]
+              },
+              "snippet": "decision = (prompt | SUPERVISOR).invoke(...)\ngraph.add_conditional_edges(\"supervise\", after_supervise, {...})",
+              "sample": "supervise → both · refund timing + who to email\npolicy_worker · sources=['refund_policy.txt']\ncontacts_worker · sources=['contacts.txt']\nsynthesize · citations=['refund_policy.txt', 'contacts.txt']\nanswer: … Sources: refund_policy.txt, contacts.txt"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/02.worker_agents.py",
+              "kind": "lesson",
+              "title": "Worker agents",
+              "n": "02",
+              "learn": "Acme: LLM plans an ordered job list; each worker reads only its corpus (refund / shipping / contacts) and writes a brief.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "02.worker_agents.py",
+              "notes": [
+                "**Zoom-in on workers:** 01 assigns and synthesizes; 02 shows each worker as a unit-testable unit.",
+                "**Loop:** plan_jobs → execute_job* → gather (stack briefs + citations).",
+                "**Isolation:** refund worker only sees refund_policy.txt; shipping only shipping; contacts only contacts.",
+                "**Vs 05 specialist:** workers are task-shaped; specialists are domain-shaped (legal / finance / code).",
+                "**Diagram:** Play refund-only, shipping-only, and refund+contacts paths below.",
+                "**When:** known job list, safer tool scopes. **Skip:** one generalist is enough."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Worker job", "Corpus", "Owns"],
+                  "rows": [
+                    ["refund", "refund_policy.txt", "Return window, payment method"],
+                    ["shipping", "shipping_policy.txt", "ETA, express vs standard"],
+                    ["contacts", "contacts.txt", "Email, VIP phone, hours"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "workers",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: Refund window + who do I email? → jobs=[refund, contacts]",
+                "steps": [
+                  {
+                    "label": "1 · Ticket",
+                    "detail": "Refund window for ORD-88421, and who do I email?"
+                  },
+                  {
+                    "label": "2 · plan_jobs",
+                    "detail": "LLM returns ordered jobs: refund, then contacts."
+                  },
+                  {
+                    "label": "3 · execute_job*",
+                    "detail": "Each worker retrieves only its index and writes a brief."
+                  },
+                  {
+                    "label": "4 · gather",
+                    "detail": "Stack briefs + citations. Customer synthesize stays in 01."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "refund only",
+                    "detail": "Return / money back → [refund]"
+                  },
+                  {
+                    "label": "shipping only",
+                    "detail": "How long to ship? → [shipping]"
+                  },
+                  {
+                    "label": "two workers",
+                    "detail": "Refund + email → [refund, contacts]"
+                  }
+                ]
+              },
+              "snippet": "plan = (prompt | PLANNER).invoke(...)\ngraph.add_conditional_edges(\"execute_job\", after_job, {\"execute_job\": ..., \"gather\": ...})",
+              "sample": "plan_jobs → ['refund', 'contacts']\nexecute_job[0]=refund · sources=['refund_policy.txt']\nexecute_job[1]=contacts · sources=['contacts.txt']\ngather · 2 briefs · citations=[...]"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/03.planner_executor.py",
+              "kind": "lesson",
+              "title": "Planner / executor",
+              "n": "03",
+              "learn": "Acme: LLM plans operations (lookup_refund / shipping / contacts → draft_reply), executor runs them, replan at most once on failed lookup.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "03.planner_executor.py",
+              "notes": [
+                "**Loop:** planner → executor* → done. On empty lookup: replan → executor* (MAX_REPLANS=1).",
+                "**Steps are operations:** lookup_refund · lookup_shipping · lookup_contacts · draft_reply — not worker names.",
+                "**Vs 01 supervisor:** supervisor picks *who*; planner picks *what steps*.",
+                "**Vs 02 workers:** 02 plans roles; 03 plans retrieve/draft ops then executes.",
+                "**Vs 10 sequential:** fixed pipeline vs plan invented per ticket.",
+                "**Diagram:** Play refund-only, shipping-only, and refund+contacts plans below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Step", "Does"],
+                  "rows": [
+                    ["lookup_refund", "Retrieve refund_policy.txt notes"],
+                    ["lookup_shipping", "Retrieve shipping_policy.txt notes"],
+                    ["lookup_contacts", "Retrieve contacts.txt notes"],
+                    ["draft_reply", "Customer answer + Sources (always last)"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "planner_executor",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: refund timing + who to email → lookup_refund → lookup_contacts → draft_reply",
+                "steps": [
+                  {
+                    "label": "1 · Ticket",
+                    "detail": "If I return ORD-88421, how long until the refund hits, and who do I email?"
+                  },
+                  {
+                    "label": "2 · Planner",
+                    "detail": "LLM writes ordered steps ending in draft_reply."
+                  },
+                  {
+                    "label": "3 · Executor*",
+                    "detail": "Run each lookup; accumulate notes + citations."
+                  },
+                  {
+                    "label": "4 · Draft / replan",
+                    "detail": "draft_reply closes. Failed lookup → replan once."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "refund plan",
+                    "detail": "lookup_refund → draft_reply"
+                  },
+                  {
+                    "label": "shipping plan",
+                    "detail": "lookup_shipping → draft_reply"
+                  },
+                  {
+                    "label": "multi-hop plan",
+                    "detail": "lookup_refund → lookup_contacts → draft_reply"
+                  }
+                ]
+              },
+              "snippet": "graph.add_conditional_edges(\"executor\", after_executor, {\"executor\": ..., \"replan\": ..., \"done\": END})",
+              "sample": "planner → ['lookup_refund', 'lookup_contacts', 'draft_reply']\nexecutor[0]=lookup_refund · ok=True\nexecutor[1]=lookup_contacts · ok=True\nexecutor[2]=draft_reply\nanswer: … Sources: refund_policy.txt, contacts.txt"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/04.router_agents.py",
+              "kind": "lesson",
+              "title": "Router agents",
+              "n": "04",
+              "learn": "Acme: LLM router picks one desk (refund / shipping / contacts / chitchat). That agent answers — no synthesize merge.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "04.router_agents.py",
+              "notes": [
+                "**Pattern:** router writes intent → thin edge → one specialist → END.",
+                "**Agents:** refund / shipping / contacts each RAG their own Day 2 file; chitchat skips retrieve.",
+                "**Vs 01 supervisor:** router ends at the specialist; supervisor merges worker briefs.",
+                "**Vs Day 3 · 17:** same shape for retrieve strategies; here destinations are agents.",
+                "**Vs 02 / 03:** those run multiple jobs/steps; router picks a single path.",
+                "**Diagram:** Play the four ticket paths below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Intent", "Corpus / action", "Demo ticket"],
+                  "rows": [
+                    ["refund", "refund_policy.txt", "Return ORD-88421 / money back"],
+                    ["shipping", "shipping_policy.txt", "Standard shipping ETA"],
+                    ["contacts", "contacts.txt", "Who do I email?"],
+                    ["chitchat", "no retrieve", "thanks, that helps"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "router_agents",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: Who do I email about ORD-88421? → intent=contacts → contacts_agent → END",
+                "steps": [
+                  {
+                    "label": "1 · Ticket",
+                    "detail": "Who do I email about ORD-88421?"
+                  },
+                  {
+                    "label": "2 · Router",
+                    "detail": "LLM writes intent=contacts (+ why for the log)."
+                  },
+                  {
+                    "label": "3 · Thin edge",
+                    "detail": "return state[\"intent\"] — no re-decide."
+                  },
+                  {
+                    "label": "4 · Specialist",
+                    "detail": "contacts_agent retrieves contacts.txt → answer + Sources."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "refund",
+                    "detail": "Return / money back → refund_agent"
+                  },
+                  {
+                    "label": "shipping",
+                    "detail": "ETA ask → shipping_agent"
+                  },
+                  {
+                    "label": "contacts / chitchat",
+                    "detail": "Email ask → contacts; thanks → chitchat"
+                  }
+                ]
+              },
+              "snippet": "decision = (prompt | ROUTER).invoke(...)\ngraph.add_conditional_edges(\"router\", route_edge, {\"refund\": ..., \"shipping\": ..., \"contacts\": ..., \"chitchat\": ...})",
+              "sample": "router → contacts · asks who to email\ncontacts_agent · sources=['contacts.txt']\nanswer: Email help@acme.example… Sources: contacts.txt"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/05.specialist_agents.py",
+              "kind": "lesson",
+              "title": "Specialist agents",
+              "n": "05",
+              "learn": "Acme: LLM classifies into a deep specialist (refund / shipping / compliance). Richer prompts + policy boundaries — one niche answers.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "05.specialist_agents.py",
+              "notes": [
+                "**Why:** deep domain prompts + checklists hallucinate less than a generalist.",
+                "**Vs 04 router:** same one-path shape; 05 specialists use deeper prompts and a compliance niche with a legal disclaimer.",
+                "**Vs 02 workers:** workers are task executors; specialists are domain experts.",
+                "**Compliance:** refund + contacts context; always says “not legal advice.”",
+                "**Diagram:** Play refund, shipping, and compliance tickets below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Domain", "Corpus", "Boundary"],
+                  "rows": [
+                    ["refund", "refund_policy.txt", "Operational refund checklist"],
+                    ["shipping", "shipping_policy.txt", "ETA / tracking checklist"],
+                    ["compliance", "refund + contacts", "Must say: not legal advice"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "specialists",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: Is it legal for Acme to refuse my refund after 50 days? → compliance",
+                "steps": [
+                  {
+                    "label": "1 · Ticket",
+                    "detail": "Customer challenges legality / refusal of a refund."
+                  },
+                  {
+                    "label": "2 · Classify",
+                    "detail": "LLM writes domain=compliance (+ why)."
+                  },
+                  {
+                    "label": "3 · Specialist",
+                    "detail": "Deep prompt + refund/contacts retrieve."
+                  },
+                  {
+                    "label": "4 · Bounded answer",
+                    "detail": "Policy facts + “not legal advice” + Sources."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "refund",
+                    "detail": "How-to return / money back"
+                  },
+                  {
+                    "label": "shipping",
+                    "detail": "Delivery ETA / tracking"
+                  },
+                  {
+                    "label": "compliance",
+                    "detail": "Legal-rights / refuse disputes"
+                  }
+                ]
+              },
+              "snippet": "decision = (prompt | CLASSIFIER).invoke(...)\ngraph.add_conditional_edges(\"classify\", domain_edge, {\"refund\": ..., \"shipping\": ..., \"compliance\": ...})",
+              "sample": "classify → compliance · challenges legality of refused refund\ncompliance_specialist · sources=['refund_policy.txt', 'contacts.txt']\nanswer: … This is general policy information, not legal advice. Sources: …"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/06.critic_agents.py",
+              "kind": "lesson",
+              "title": "Critic agents",
+              "n": "06",
+              "learn": "Acme: RAG draft → LLM critic (grounding / invention / Sources) → revise once if needed → finalize.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "06.critic_agents.py",
+              "notes": [
+                "**Loop:** generate → critic → [revise → critic]* → finalize (MAX_REVISIONS=1).",
+                "**Critic gates:** claims in context · no invented portals/URLs · real Sources line · no vague filler.",
+                "**Teaching trick:** first draft is allowed to mention a “refund portal” so the critic has something to catch.",
+                "**Vs 07 evaluator:** critic drives a rewrite; evaluator only scores for monitoring.",
+                "**Diagram:** Play a ticket path that revises, and one that can approve cleanly."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Node", "Does"],
+                  "rows": [
+                    ["generate", "Retrieve Day 2 policies → first draft"],
+                    ["critic", "Structured approve / issues / guidance"],
+                    ["revise", "Rewrite from context + critic notes"],
+                    ["finalize", "Ship the current draft"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "critic",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: refund ticket — draft invents a portal → critic rejects → revise → approve",
+                "steps": [
+                  {
+                    "label": "1 · Generate",
+                    "detail": "RAG draft (may invent Acme refund portal)."
+                  },
+                  {
+                    "label": "2 · Critic",
+                    "detail": "LLM checks grounding, invention, Sources."
+                  },
+                  {
+                    "label": "3 · Revise?",
+                    "detail": "If issues and budget left → rewrite from context."
+                  },
+                  {
+                    "label": "4 · Finalize",
+                    "detail": "Send approved (or best-effort) draft."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "approved",
+                    "detail": "critic → finalize (no revise)"
+                  },
+                  {
+                    "label": "revise once",
+                    "detail": "critic → revise → critic → finalize"
+                  },
+                  {
+                    "label": "budget spent",
+                    "detail": "still issues → finalize best draft"
+                  }
+                ]
+              },
+              "snippet": "critique = (prompt | CRITIC).invoke(...)\ngraph.add_conditional_edges(\"critic\", after_critic, {\"revise\": ..., \"finalize\": ...})",
+              "sample": "generate · sources=['refund_policy.txt']\ncritic · approved=False · Issues: invents portal…\nrevise#1\ncritic · approved=True\nfinalize · send draft"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/07.evaluator_agents.py",
+              "kind": "lesson",
+              "title": "Evaluator agents",
+              "n": "07",
+              "learn": "Acme offline suite: retrieve policy context → LLM rubric scores (0/1) → report. No rewrite — monitoring only.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "07.evaluator_agents.py",
+              "notes": [
+                "**Loop:** retrieve_context → evaluate → report. Never calls revise.",
+                "**Rubric:** grounded · no_invention · has_sources · helpful (all must be 1 to pass).",
+                "**Suite:** good refund · invents portal · vague shipping · good contacts — each has expect_pass.",
+                "**Vs 06 critic:** critic rewrites; evaluator only scores for CI / sampling / alerts.",
+                "**Day 3 link:** failure-first — measure answers against context before shipping agents.",
+                "**Diagram:** Play a pass case and a fail case below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Case", "expect_pass", "Typical fail axis"],
+                  "rows": [
+                    ["good_refund", "true", "—"],
+                    ["invents_portal", "false", "no_invention"],
+                    ["vague", "false", "grounded / helpful"],
+                    ["good_contacts", "true", "—"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "evaluator",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: invents_portal case — score no_invention=0 → passed=false (no revise)",
+                "steps": [
+                  {
+                    "label": "1 · Case",
+                    "detail": "Planted answer mentions portal.acme.example."
+                  },
+                  {
+                    "label": "2 · retrieve_context",
+                    "detail": "Load Day 2 policy chunks for the ticket."
+                  },
+                  {
+                    "label": "3 · evaluate",
+                    "detail": "LLM returns 0/1 scores + reason."
+                  },
+                  {
+                    "label": "4 · report",
+                    "detail": "Log scores vs expect_pass. Do not rewrite."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "pass",
+                    "detail": "All axes 1 → passed=true"
+                  },
+                  {
+                    "label": "fail",
+                    "detail": "Any axis 0 → passed=false"
+                  },
+                  {
+                    "label": "vs 06",
+                    "detail": "Critic would revise; evaluator only alerts"
+                  }
+                ]
+              },
+              "snippet": "scores = (prompt | EVALUATOR).invoke(...)\npassed = all(v == 1 for v in scores.values())  # no revise edge",
+              "sample": "case: invents_portal\nevaluate · scores={grounded:0, no_invention:0, has_sources:1, helpful:1} · passed=False\nreport · expect_pass=False · actual=False · suite_match=True"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/08.hierarchical_agents.py",
+              "kind": "lesson",
+              "title": "Hierarchical agents",
+              "n": "08",
+              "learn": "Acme executive picks owning team; support (policy RAG) or engineering (oncall runbook) answers. Two ownership hops.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "08.hierarchical_agents.py",
+              "notes": [
+                "**Levels:** executive → support_lead / eng_lead (faq_bot / oncall_bot folded into leads).",
+                "**Corpora:** support = Day 2 policies; engineering = oncall_runbook.md (separate ops wiki).",
+                "**Vs 01:** one supervisor merges workers; hierarchy stacks team ownership.",
+                "**Vs 04:** flat router is one hop — cheaper when teams are few.",
+                "**Diagram:** Play a support ticket and an engineering ticket below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Ticket", "Team", "Worker"],
+                  "rows": [
+                    ["Can I return ORD-88421…?", "support", "faq_bot"],
+                    ["Who do I email about ORD-88421?", "support", "faq_bot"],
+                    ["Checkout API returns 500…", "engineering", "oncall_bot"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "hierarchical",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: checkout 500 → executive → engineering / oncall_bot",
+                "steps": [
+                  {
+                    "label": "1 · Ticket",
+                    "detail": "Customer reports checkout API 500."
+                  },
+                  {
+                    "label": "2 · Executive",
+                    "detail": "LLM assigns team=engineering (not support FAQ)."
+                  },
+                  {
+                    "label": "3 · Team lead",
+                    "detail": "eng_lead runs oncall_bot against the runbook."
+                  },
+                  {
+                    "label": "4 · Answer",
+                    "detail": "Platform reply + Sources: oncall_runbook.md"
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "support",
+                    "detail": "policy RAG → faq_bot reply"
+                  },
+                  {
+                    "label": "engineering",
+                    "detail": "runbook → oncall_bot reply"
+                  },
+                  {
+                    "label": "vs flat",
+                    "detail": "04 router skips the team layer"
+                  }
+                ]
+              },
+              "snippet": "decision = (prompt | EXECUTIVE).invoke(...)\ngraph.add_conditional_edges(\"executive\", pick_team, {\"support\": ..., \"engineering\": ...})",
+              "sample": "executive · team=engineering · API / outage ask\neng_lead · worker=oncall_bot · sources=['oncall_runbook.md']\nanswer: … retry after 30s … Sources: oncall_runbook.md"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/09.parallel_agents.py",
+              "kind": "lesson",
+              "title": "Parallel agents",
+              "n": "09",
+              "learn": "Acme fan-out: refund + shipping + contacts workers run together (Annotated add), then summarize joins.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "09.parallel_agents.py",
+              "notes": [
+                "**Shape:** START ⇉ three workers → summarize (join waits for all) → END.",
+                "**Reducer:** findings / citations / log use Annotated[..., add] so parallel writes concatenate.",
+                "**Vs 10 sequential:** parallel needs independence; sequential when B needs A's output.",
+                "**Vs 02 workers:** 02 plans ordered jobs; here all three always fire together.",
+                "**Day 1 link:** same join idea as parallel fixed edges — fast branch does not start summarize early.",
+                "**Diagram:** Play the multi-part refund + shipping + contacts ticket below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Node", "Corpus", "Writes"],
+                  "rows": [
+                    ["refund_worker", "refund_policy.txt", "findings + citations"],
+                    ["shipping_worker", "shipping_policy.txt", "findings + citations"],
+                    ["contacts_worker", "contacts.txt", "findings + citations"],
+                    ["summarize", "(briefs only)", "one customer answer"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "parallel_agents",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: multi-part ticket — three workers fan out, summarize joins once",
+                "steps": [
+                  {
+                    "label": "1 · Ticket",
+                    "detail": "Refund timing + shipping ETA + who to email."
+                  },
+                  {
+                    "label": "2 · Fan-out",
+                    "detail": "Three edges leave START together."
+                  },
+                  {
+                    "label": "3 · Workers",
+                    "detail": "Each RAG brief writes findings via add reducer."
+                  },
+                  {
+                    "label": "4 · Join",
+                    "detail": "summarize waits for all three, then replies."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "join",
+                    "detail": "fast worker does not start summarize early"
+                  },
+                  {
+                    "label": "reducer",
+                    "detail": "without Annotated add, last writer wins"
+                  },
+                  {
+                    "label": "vs 10",
+                    "detail": "sequential when order matters"
+                  }
+                ]
+              },
+              "snippet": "findings: Annotated[list[str], add]\ngraph.add_edge(START, \"refund_worker\")  # + shipping + contacts\ngraph.add_edge(\"refund_worker\", \"summarize\")  # join",
+              "sample": "refund_worker · sources=['refund_policy.txt']\nshipping_worker · sources=['shipping_policy.txt']\ncontacts_worker · sources=['contacts.txt']\nsummarize · joined 3 briefs\nanswer: … Sources: contacts.txt, refund_policy.txt, shipping_policy.txt"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/10.sequential_agents.py",
+              "kind": "lesson",
+              "title": "Sequential agents",
+              "n": "10",
+              "learn": "Acme fixed pipeline: intake → retrieve → outline → writer → editor. Each stage needs the previous field.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "10.sequential_agents.py",
+              "notes": [
+                "**Pipeline:** intake (clean) → retrieve (Day 2 RAG) → outline → writer → editor.",
+                "**Order matters:** outline needs context; writer needs outline; editor needs draft.",
+                "**Vs 09 parallel:** fan out only when stages are independent.",
+                "**Vs 03 planner:** stages here are fixed; planner invents steps at runtime.",
+                "**Gates:** insert 06 critic / 07 evaluator between writer and editor in production.",
+                "**Diagram:** Play the refund ticket through the full chain below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Stage", "Needs", "Writes"],
+                  "rows": [
+                    ["intake", "raw_notes", "question"],
+                    ["retrieve", "question", "context + citations"],
+                    ["outline", "context", "outline"],
+                    ["writer", "outline + context", "draft"],
+                    ["editor", "draft", "polished"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "sequential",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: messy refund ticket → cleaned → RAG → outline → draft → polish",
+                "steps": [
+                  {
+                    "label": "1 · Intake",
+                    "detail": "Strip whitespace; normalize the ticket."
+                  },
+                  {
+                    "label": "2 · Retrieve",
+                    "detail": "Day 2 policy chunks for that question."
+                  },
+                  {
+                    "label": "3 · Outline → writer",
+                    "detail": "Structure first, then full draft + Sources."
+                  },
+                  {
+                    "label": "4 · Editor",
+                    "detail": "Polish tone; no new policy facts."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "ordered",
+                    "detail": "each edge carries the prior field"
+                  },
+                  {
+                    "label": "vs 09",
+                    "detail": "cannot fan out outline before retrieve"
+                  },
+                  {
+                    "label": "gates",
+                    "detail": "add 06/07 before editor if needed"
+                  }
+                ]
+              },
+              "snippet": "graph.add_edge(\"intake\", \"retrieve\")\ngraph.add_edge(\"retrieve\", \"outline\")\ngraph.add_edge(\"outline\", \"writer\")\ngraph.add_edge(\"writer\", \"editor\")",
+              "sample": "intake · cleaned → 'Can I return ORD-88421…'\nretrieve · sources=['refund_policy.txt']\noutline · bullets ready\nwriter · draft ready\neditor · polished ready"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/11.agent_handoffs.py",
+              "kind": "lesson",
+              "title": "Agent handoffs",
+              "n": "11",
+              "learn": "Acme mid-thread handoff: triage routes the latest turn to support (RAG) or compliance (boundary + escalate). Carry ticket metadata.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "11.agent_handoffs.py",
+              "notes": [
+                "**Carry:** messages · active_agent · handoff_reason · ticket {priority, category, order_id}.",
+                "**Route on latest turn:** earlier refund FAQ does not lock the thread on support.",
+                "**Vs 04 router:** router is one-shot up front; handoff re-checks when the thread changes.",
+                "**Day 1 link:** human-in-the-loop is a handoff to a person.",
+                "**Ops:** always log active_agent + handoff_reason (see 13).",
+                "**Diagram:** Play a support-only ticket and a mid-thread compliance handoff below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Thread", "active_agent", "ticket"],
+                  "rows": [
+                    ["Refund FAQ only", "support", "priority=normal, category=faq"],
+                    ["Prior support + legal ask", "compliance", "priority=high, category=legal"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "agent_handoffs",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: refund thread → latest turn asks legal advice → compliance handoff",
+                "steps": [
+                  {
+                    "label": "1 · Thread",
+                    "detail": "Prior support reply still on messages."
+                  },
+                  {
+                    "label": "2 · Triage",
+                    "detail": "LLM routes on the latest user turn."
+                  },
+                  {
+                    "label": "3 · Handoff",
+                    "detail": "Stamp ticket + handoff_reason; active_agent=compliance."
+                  },
+                  {
+                    "label": "4 · Compliance",
+                    "detail": "Policy facts + not-legal-advice; escalate to help@."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "support",
+                    "detail": "FAQ stay · priority=normal"
+                  },
+                  {
+                    "label": "compliance",
+                    "detail": "handoff · priority=high"
+                  },
+                  {
+                    "label": "vs 04",
+                    "detail": "router would not re-check mid-thread"
+                  }
+                ]
+              },
+              "snippet": "decision = (prompt | TRIAGE).invoke({\"thread\": thread})\ngraph.add_conditional_edges(\"triage\", route, {\"support\": ..., \"compliance\": ...})",
+              "sample": "triage · active_agent=compliance · reason='legal advice ask' · ticket={priority: high, category: legal, order_id: ORD-88421}\nCompliance (handoff: …): general information only…"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/12.shared_state.py",
+              "kind": "lesson",
+              "title": "Shared state",
+              "n": "12",
+              "learn": "Acme one TypedDict: planner → researcher (RAG) → writer. Reducers accumulate artifacts; status last-write-wins.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "12.shared_state.py",
+              "notes": [
+                "**Rules:** one schema · partial updates only · no hidden globals.",
+                "**Reducer:** artifacts / citations / log use Annotated[..., add] so every node’s write is kept.",
+                "**Contrast:** status is a plain str — only the last value remains (planned → researched → done).",
+                "**Day 1/2 link:** LangGraph state + reducers; checkpointers for long multi-agent runs.",
+                "**Diagram:** Play the ORD-88421 ticket and watch the artifacts bag grow."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Node", "status →", "artifacts +="],
+                  "rows": [
+                    ["planner", "planned", "plan[TCK-1207]…"],
+                    ["researcher", "researched", "research[TCK-1207]… + citations"],
+                    ["writer", "done", "final_doc[TCK-1207]… + answer"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "shared_state",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: refund ticket — three partial updates into one SharedState bag",
+                "steps": [
+                  {
+                    "label": "1 · Planner",
+                    "detail": "Appends plan artifact; status=planned."
+                  },
+                  {
+                    "label": "2 · Researcher",
+                    "detail": "Day 2 RAG brief + citations; status=researched."
+                  },
+                  {
+                    "label": "3 · Writer",
+                    "detail": "Reads full artifacts bag; appends final_doc."
+                  },
+                  {
+                    "label": "4 · Bag",
+                    "detail": "All three artifacts kept; status is only done."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "reducer",
+                    "detail": "Annotated add concatenates lists"
+                  },
+                  {
+                    "label": "overwrite",
+                    "detail": "plain status keeps last write only"
+                  },
+                  {
+                    "label": "partial",
+                    "detail": "nodes never return the full state"
+                  }
+                ]
+              },
+              "snippet": "artifacts: Annotated[list[str], add]\ncitations: Annotated[list[str], add]\n# status: str  ← last write wins",
+              "sample": "status: done\nartifacts:\n  plan[TCK-1207]: retrieve…\n  research[TCK-1207]: Refunds within 45 days…\n  final_doc[TCK-1207]: Yes — … Sources: refund_policy.txt"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/13.agent_coordination.py",
+              "kind": "lesson",
+              "title": "Agent coordination",
+              "n": "13",
+              "learn": "Acme decision aid: pick a coordination pattern from the ticket shape, then stamp the ops checklist. Capstone before 14.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "13.agent_coordination.py",
+              "notes": [
+                "**Loop:** pick_pattern → emit_checklist (catalog is printed, then applied to Acme tickets).",
+                "**Patterns:** supervisor · handoffs · blackboard · parallel · sequential · flat router — each maps to 01 / 04–05 / 08–12.",
+                "**Checklist:** stop conditions · log active_agent + handoff_reason · 06/07 on high stakes · checkpoint long runs.",
+                "**Pick by coupling:** independent asks → parallel; ordered drafts → sequential; mid-thread legal → handoffs.",
+                "**Mix-up:** wiring three patterns at once with no stop condition.",
+                "**Diagram:** Play a merge ticket, a mid-thread handoff, and a single-path FAQ below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Acme ticket shape", "Pattern", "Lesson"],
+                  "rows": [
+                    ["Refund + who to email", "Central supervisor", "01 / 08"],
+                    ["Legal ask mid-thread", "Peer handoffs", "11"],
+                    ["Refund + shipping + contacts", "Parallel fan-out", "09"],
+                    ["Draft then polish", "Sequential pipeline", "10"],
+                    ["Shipping ETA only", "Flat router", "04 / 05"],
+                    ["Plan → research → write bag", "Shared blackboard", "12"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "coordination",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: multi-part ticket → pick parallel_fanout → stamp ops checklist",
+                "steps": [
+                  {
+                    "label": "1 · Ticket",
+                    "detail": "Read coupling: one path, merge, fan-out, or handoff?"
+                  },
+                  {
+                    "label": "2 · pick_pattern",
+                    "detail": "Map to a lesson (01 / 04–12) by coupling."
+                  },
+                  {
+                    "label": "3 · emit_checklist",
+                    "detail": "Stop conditions · logs · 06/07 · checkpoints."
+                  },
+                  {
+                    "label": "4 · Next",
+                    "detail": "14 decides whether multi-agent is worth it at all."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "merge",
+                    "detail": "supervisor when two skills need one reply"
+                  },
+                  {
+                    "label": "independent",
+                    "detail": "parallel when corpora do not depend"
+                  },
+                  {
+                    "label": "mid-thread",
+                    "detail": "handoffs when domain changes"
+                  }
+                ]
+              },
+              "snippet": "pattern, why = pick_coordination(question)\n# then always: stop conditions · log handoffs · 06/07 · checkpoint",
+              "sample": "pick_pattern · Parallel fan-out (09) · three independent corpora — join once\nemit_checklist · ops gates stamped\n  – define stop conditions…"
+            },
+            {
+              "id": "lesson:day 5/11. Advanced Agent Architecture/14.multi_agent_tradeoffs.py",
+              "kind": "lesson",
+              "title": "Multi-agent trade-offs",
+              "n": "14",
+              "learn": "Acme capstone: score complexity / latency / specialists / quality gate → recommend the cheapest architecture that fits. More agents ≠ better.",
+              "day": 5,
+              "module": "11. Advanced Agent Architecture",
+              "file": "14.multi_agent_tradeoffs.py",
+              "notes": [
+                "**Loop:** score → recommend → explain (maps back to lessons 01–13).",
+                "**Default:** start with one agent; add roles when metrics prove the need (Day 3 habit).",
+                "**Helps when:** different expertise, parallel work, quality gates, compliance separation.",
+                "**Hurts when:** simple Q&A, tight latency/cost, opaque debugging, compounding errors.",
+                "**Vs 13:** 13 picks *how* to coordinate; 14 asks *whether* multi-agent is worth it.",
+                "**Diagram:** Play FAQ (single), compliance (critic), and multi-skill (supervisor) below."
+              ],
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Acme design", "Flags", "Recommend"],
+                  "rows": [
+                    ["Shipping FAQ", "c=1, latency", "Single agent"],
+                    ["Compliance dispute", "c=4, specialists, gate", "Generator + critic/evaluator"],
+                    ["Ops triage (API 500)", "c=3, latency, specialists", "Router + specialist"],
+                    ["Multi-skill refund packet", "c=4, specialists", "Supervisor + workers"],
+                    ["Grounded reply pipeline", "c=4", "Planner / shared state"]
+                  ]
+                }
+              ],
+              "demo": "graph",
+              "graph": "tradeoffs",
+              "diagram": {
+                "kicker": "Flow at a glance",
+                "caption": "Example: compliance dispute → score flags → critic/evaluator loop (not a deep hierarchy)",
+                "steps": [
+                  {
+                    "label": "1 · Design",
+                    "detail": "Acme ticket + complexity / latency / specialists / gate."
+                  },
+                  {
+                    "label": "2 · Score",
+                    "detail": "Stamp the four flags for the recommender."
+                  },
+                  {
+                    "label": "3 · Recommend",
+                    "detail": "Cheapest architecture that fits — failure-first."
+                  },
+                  {
+                    "label": "4 · Explain",
+                    "detail": "Lessons to wire + metric to watch next."
+                  }
+                ],
+                "outcomes": [
+                  {
+                    "label": "single",
+                    "detail": "one-corpus FAQ stays one agent"
+                  },
+                  {
+                    "label": "gated",
+                    "detail": "legal/compliance needs 06/07"
+                  },
+                  {
+                    "label": "multi-skill",
+                    "detail": "merge paths need 01 / 09 — not 04 alone"
+                  }
+                ]
+              },
+              "snippet": "if complexity <= 2 and not specialists: return \"Single agent\"\nif quality_gate and complexity >= 3: return \"Generator + critic/evaluator loop\"",
+              "sample": "score · complexity=4 · latency=False · specialists=True · quality_gate=True\nrecommend · Generator + critic/evaluator loop\nexplain · lessons: 06 · 07 · 11 …"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

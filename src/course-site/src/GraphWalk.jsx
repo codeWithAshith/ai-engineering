@@ -616,6 +616,1843 @@ const DIAGRAMS = {
       },
     ],
   },
+  tradeoffs: {
+    kicker: "Day 5 · 14 · Multi-agent trade-offs",
+    caption:
+      "Score Acme design flags → recommend the cheapest architecture → explain lessons + next metric. Capstone. Play three shapes.",
+    direction: "TD",
+    layers: [["START"], ["score"], ["recommend"], ["explain"], ["END"]],
+    edges: [
+      { from: "START", to: "score" },
+      { from: "score", to: "recommend" },
+      { from: "recommend", to: "explain" },
+      { from: "explain", to: "END" },
+    ],
+    meanings: {
+      START: "design + ticket in",
+      score: "four flags",
+      recommend: "cheapest fit",
+      explain: "lessons + metric",
+      END: "wire or stay single",
+    },
+    idleNote: "Pick FAQ, compliance, or multi-skill — then Play.",
+    cases: [
+      {
+        name: "FAQ · single agent",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Design: Shipping FAQ — How long does standard shipping take for ORD-88421?",
+            ticket: {
+              name: "Shipping FAQ",
+              task_complexity: 1,
+              latency_sensitive: true,
+              needs_specialists: false,
+              needs_quality_gate: false,
+            },
+          },
+          {
+            nodes: ["START", "score", "recommend"],
+            edges: [
+              { from: "START", to: "score" },
+              { from: "score", to: "recommend" },
+            ],
+            note: "complexity≤2 and no specialists → Single agent. Do not wire 01.",
+            ticket: {
+              score_line: "complexity=1 · latency=True · specialists=False · quality_gate=False",
+              architecture: "Single agent (simplest)",
+            },
+          },
+          {
+            nodes: ["START", "score", "recommend", "explain", "END"],
+            edges: [
+              { from: "START", to: "score" },
+              { from: "score", to: "recommend" },
+              { from: "recommend", to: "explain" },
+              { from: "explain", to: "END" },
+            ],
+            note: "Next metric: groundedness on shipping_policy.txt alone.",
+            ticket: {
+              architecture: "Single agent (simplest)",
+              explanation: "lessons: 04 · why not more: extra failure modes…",
+            },
+          },
+        ],
+      },
+      {
+        name: "compliance · critic loop",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Design: Compliance dispute — is it legal to refuse refund after 50 days?",
+            ticket: {
+              name: "Compliance dispute",
+              task_complexity: 4,
+              needs_specialists: true,
+              needs_quality_gate: true,
+            },
+          },
+          {
+            nodes: ["START", "score", "recommend", "explain", "END"],
+            edges: [
+              { from: "START", to: "score" },
+              { from: "score", to: "recommend" },
+              { from: "recommend", to: "explain" },
+              { from: "explain", to: "END" },
+            ],
+            note: "quality_gate wins → Generator + critic/evaluator (06/07), not a deep hierarchy alone.",
+            ticket: {
+              architecture: "Generator + critic/evaluator loop",
+              explanation: "lessons: 06 · 07 · 11 · next metric: no_invention pass rate",
+            },
+          },
+        ],
+      },
+      {
+        name: "multi-skill · supervisor",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Design: refund timing + shipping + who to email — three corpora, one reply.",
+            ticket: {
+              name: "Multi-skill refund packet",
+              task_complexity: 4,
+              latency_sensitive: false,
+              needs_specialists: true,
+              needs_quality_gate: false,
+            },
+          },
+          {
+            nodes: ["START", "score", "recommend", "explain", "END"],
+            edges: [
+              { from: "START", to: "score" },
+              { from: "score", to: "recommend" },
+              { from: "recommend", to: "explain" },
+              { from: "explain", to: "END" },
+            ],
+            note: "Specialists without latency pressure → Supervisor + workers (01/09). Flat router cannot merge.",
+            ticket: {
+              architecture: "Supervisor + workers (or hierarchical)",
+              explanation: "lessons: 01 · 09 · 08 · next metric: citation coverage",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  coordination: {
+    kicker: "Day 5 · 13 · Agent coordination",
+    caption:
+      "Pick a coordination pattern from the Acme ticket shape, then stamp the ops checklist. Play merge, handoff, and single-path cases.",
+    direction: "TD",
+    layers: [
+      ["START"],
+      ["pick_pattern"],
+      [
+        "central_supervisor",
+        "peer_handoffs",
+        "parallel_fanout",
+        "flat_router",
+      ],
+      ["emit_checklist"],
+      ["END"],
+    ],
+    edges: [
+      { from: "START", to: "pick_pattern" },
+      { from: "pick_pattern", to: "central_supervisor", label: "merge" },
+      { from: "pick_pattern", to: "peer_handoffs", label: "mid-thread" },
+      { from: "pick_pattern", to: "parallel_fanout", label: "independent" },
+      { from: "pick_pattern", to: "flat_router", label: "one path" },
+      { from: "central_supervisor", to: "emit_checklist" },
+      { from: "peer_handoffs", to: "emit_checklist" },
+      { from: "parallel_fanout", to: "emit_checklist" },
+      { from: "flat_router", to: "emit_checklist" },
+      { from: "emit_checklist", to: "END" },
+    ],
+    meanings: {
+      START: "Acme ticket in",
+      pick_pattern: "choose by coupling",
+      central_supervisor: "01 / 08 merge",
+      peer_handoffs: "11 mid-thread",
+      parallel_fanout: "09 join",
+      flat_router: "04 / 05 one hop",
+      emit_checklist: "ops gates",
+      END: "wire that pattern next",
+    },
+    idleNote: "Pick a ticket shape, then Play.",
+    cases: [
+      {
+        name: "merge · supervisor",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: refund timing AND who to email — two skills, one reply.",
+            ticket: {
+              question: "If I return ORD-88421… refund… and who do I email?",
+            },
+          },
+          {
+            nodes: ["START", "pick_pattern", "central_supervisor"],
+            edges: [
+              { from: "START", to: "pick_pattern" },
+              { from: "pick_pattern", to: "central_supervisor" },
+            ],
+            note: "pick_pattern → central_supervisor (01). Not parallel — needs synthesize merge.",
+            ticket: { pattern: "central_supervisor", why: "two skills need merge" },
+          },
+          {
+            nodes: [
+              "START",
+              "pick_pattern",
+              "central_supervisor",
+              "emit_checklist",
+              "END",
+            ],
+            edges: [
+              { from: "START", to: "pick_pattern" },
+              { from: "pick_pattern", to: "central_supervisor" },
+              { from: "central_supervisor", to: "emit_checklist" },
+              { from: "emit_checklist", to: "END" },
+            ],
+            note: "Checklist: stop conditions · log handoffs · 06/07 · checkpoint.",
+            ticket: {
+              checklist: [
+                "stop conditions",
+                "log active_agent",
+                "critic/evaluator",
+                "checkpoint",
+              ],
+            },
+          },
+        ],
+      },
+      {
+        name: "mid-thread · handoffs",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Prior refund help; latest turn asks for legal advice on a contract.",
+            ticket: {
+              question: "…is it legal…? I need legal advice on my contract.",
+            },
+          },
+          {
+            nodes: ["START", "pick_pattern", "peer_handoffs", "emit_checklist", "END"],
+            edges: [
+              { from: "START", to: "pick_pattern" },
+              { from: "pick_pattern", to: "peer_handoffs" },
+              { from: "peer_handoffs", to: "emit_checklist" },
+              { from: "emit_checklist", to: "END" },
+            ],
+            note: "peer_handoffs (11). Always log handoff_reason — see the checklist.",
+            ticket: {
+              pattern: "peer_handoffs",
+              why: "latest turn needs compliance",
+            },
+          },
+        ],
+      },
+      {
+        name: "one path · flat router",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: How long does standard shipping take for ORD-88421?",
+            ticket: {
+              question: "How long does standard shipping take for ORD-88421?",
+            },
+          },
+          {
+            nodes: ["START", "pick_pattern", "flat_router", "emit_checklist", "END"],
+            edges: [
+              { from: "START", to: "pick_pattern" },
+              { from: "pick_pattern", to: "flat_router" },
+              { from: "flat_router", to: "emit_checklist" },
+              { from: "emit_checklist", to: "END" },
+            ],
+            note: "flat_router (04/05). Do not wire a supervisor for a one-corpus FAQ.",
+            ticket: {
+              pattern: "flat_router",
+              why: "single specialist path is enough",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  shared_state: {
+    kicker: "Day 5 · 12 · Shared state",
+    caption:
+      "One TypedDict. Planner → researcher → writer return partial updates. Artifacts use Annotated add; status last-write-wins. Play the walk.",
+    direction: "TD",
+    layers: [["START"], ["planner"], ["researcher"], ["writer"], ["END"]],
+    edges: [
+      { from: "START", to: "planner" },
+      { from: "planner", to: "researcher" },
+      { from: "researcher", to: "writer" },
+      { from: "writer", to: "END" },
+    ],
+    meanings: {
+      START: "ticket bag in",
+      planner: "partial · plan artifact",
+      researcher: "partial · RAG brief",
+      writer: "partial · final_doc",
+      END: "shared bag complete",
+    },
+    idleNote: "Watch artifacts grow and status overwrite. Press Play.",
+    cases: [
+      {
+        name: "refund · accumulate bag",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "SharedState starts: ticket_id=TCK-1207, artifacts=[], status=new.",
+            ticket: {
+              ticket_id: "TCK-1207",
+              user_id: "cust-88421",
+              question: "Can I return ORD-88421 and get money back to my card?",
+              status: "new",
+              artifacts: [],
+            },
+          },
+          {
+            nodes: ["START", "planner"],
+            edges: [{ from: "START", to: "planner" }],
+            note: "planner returns only {artifacts: [plan…], status: planned} — not the full dict.",
+            ticket: {
+              status: "planned",
+              artifacts: ["plan[TCK-1207]: retrieve policy → draft reply"],
+            },
+          },
+          {
+            nodes: ["START", "planner", "researcher"],
+            edges: [
+              { from: "START", to: "planner" },
+              { from: "planner", to: "researcher" },
+            ],
+            note: "Annotated add keeps the plan AND appends research. status overwritten → researched.",
+            ticket: {
+              status: "researched",
+              artifacts: [
+                "plan[TCK-1207]: retrieve…",
+                "research[TCK-1207]: Refunds within 45 days… 5–7 business days…",
+              ],
+              citations: ["refund_policy.txt"],
+            },
+          },
+          {
+            nodes: ["START", "planner", "researcher", "writer", "END"],
+            edges: [
+              { from: "START", to: "planner" },
+              { from: "planner", to: "researcher" },
+              { from: "researcher", to: "writer" },
+              { from: "writer", to: "END" },
+            ],
+            note: "writer reads the full artifacts bag. Without Annotated add, the plan would already be gone.",
+            ticket: {
+              status: "done",
+              artifacts: [
+                "plan[TCK-1207]: …",
+                "research[TCK-1207]: …",
+                "final_doc[TCK-1207]: Yes — refund to card… Sources: refund_policy.txt",
+              ],
+              answer: "Yes — … Sources: refund_policy.txt",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  agent_handoffs: {
+    kicker: "Day 5 · 11 · Agent handoffs",
+    caption:
+      "Triage routes the latest turn to support (RAG) or compliance (boundary). Mid-thread legal ask can hand off after a refund reply. Play both.",
+    direction: "TD",
+    layers: [["START"], ["triage"], ["support", "compliance"], ["END"]],
+    edges: [
+      { from: "START", to: "triage" },
+      { from: "triage", to: "support", label: "support" },
+      { from: "triage", to: "compliance", label: "compliance" },
+      { from: "support", to: "END" },
+      { from: "compliance", to: "END" },
+    ],
+    meanings: {
+      START: "thread in",
+      triage: "route on latest turn",
+      support: "Day 2 policy RAG",
+      compliance: "boundary + escalate",
+      END: "agent reply appended",
+    },
+    idleNote: "Pick support-only or mid-thread handoff, then Play.",
+    cases: [
+      {
+        name: "support · refund FAQ",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Fresh thread: Can I return ORD-88421 and get money back to my card?",
+            ticket: {
+              messages: ["User: Can I return ORD-88421…?"],
+            },
+          },
+          {
+            nodes: ["START", "triage"],
+            edges: [{ from: "START", to: "triage" }],
+            note: "Latest turn is FAQ → active_agent=support, priority=normal.",
+            ticket: {
+              active_agent: "support",
+              handoff_reason: "",
+              ticket: { priority: "normal", category: "faq", order_id: "ORD-88421" },
+            },
+          },
+          {
+            nodes: ["START", "triage", "support", "END"],
+            edges: [
+              { from: "START", to: "triage" },
+              { from: "triage", to: "support" },
+              { from: "support", to: "END" },
+            ],
+            note: "Support appends a grounded reply. compliance never ran.",
+            ticket: {
+              active_agent: "support",
+              citations: ["refund_policy.txt"],
+              messages: ["User: …", "Support: Yes — 45 days… Sources: refund_policy.txt"],
+            },
+          },
+        ],
+      },
+      {
+        name: "handoff · legal mid-thread",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Thread already has a Support refund reply. Latest user asks for legal advice.",
+            ticket: {
+              messages: [
+                "User: Can I return ORD-88421…?",
+                "Support: Yes — 45 days… Sources: refund_policy.txt",
+                "User: Is it legal…? I need legal advice about my contract.",
+              ],
+            },
+          },
+          {
+            nodes: ["START", "triage"],
+            edges: [{ from: "START", to: "triage" }],
+            note: "Triage re-checks the latest turn — earlier FAQ does not lock support.",
+            ticket: {
+              active_agent: "compliance",
+              handoff_reason: "legal advice / contract ask",
+              ticket: { priority: "high", category: "legal", order_id: "ORD-88421" },
+            },
+          },
+          {
+            nodes: ["START", "triage", "compliance", "END"],
+            edges: [
+              { from: "START", to: "triage" },
+              { from: "triage", to: "compliance" },
+              { from: "compliance", to: "END" },
+            ],
+            note: "Compliance appends boundary + escalate. Vs 04: a one-shot router would not re-check mid-thread.",
+            ticket: {
+              active_agent: "compliance",
+              messages: [
+                "…",
+                "Compliance (handoff: legal advice…): general information only — email help@acme.example…",
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  sequential: {
+    kicker: "Day 5 · 10 · Sequential agents",
+    caption:
+      "Fixed Acme pipeline: intake → retrieve → outline → writer → editor. Each stage needs the previous field. Play the walk.",
+    direction: "TD",
+    layers: [
+      ["START"],
+      ["intake"],
+      ["retrieve"],
+      ["outline"],
+      ["writer"],
+      ["editor"],
+      ["END"],
+    ],
+    edges: [
+      { from: "START", to: "intake" },
+      { from: "intake", to: "retrieve" },
+      { from: "retrieve", to: "outline" },
+      { from: "outline", to: "writer" },
+      { from: "writer", to: "editor" },
+      { from: "editor", to: "END" },
+    ],
+    meanings: {
+      START: "raw ticket in",
+      intake: "normalize question",
+      retrieve: "Day 2 policy RAG",
+      outline: "bullets from context",
+      writer: "full draft + Sources",
+      editor: "polish · no new facts",
+      END: "polished reply",
+    },
+    idleNote: "One path, left to right. Press Play.",
+    cases: [
+      {
+        name: "refund · full pipeline",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "raw_notes arrives messy: extra spaces / newlines around the refund ask.",
+            ticket: {
+              raw_notes: "  Can I return ORD-88421 and get money back to my card?  ",
+            },
+          },
+          {
+            nodes: ["START", "intake"],
+            edges: [{ from: "START", to: "intake" }],
+            note: "intake writes question — retrieve cannot run before this.",
+            ticket: {
+              question: "Can I return ORD-88421 and get money back to my card?",
+            },
+          },
+          {
+            nodes: ["START", "intake", "retrieve"],
+            edges: [
+              { from: "START", to: "intake" },
+              { from: "intake", to: "retrieve" },
+            ],
+            note: "retrieve loads refund_policy.txt. Outline needs this context.",
+            ticket: {
+              citations: ["refund_policy.txt"],
+              context: "[refund_policy.txt] Refund within 45 days… 5–7 business days…",
+            },
+          },
+          {
+            nodes: ["START", "intake", "retrieve", "outline"],
+            edges: [
+              { from: "START", to: "intake" },
+              { from: "intake", to: "retrieve" },
+              { from: "retrieve", to: "outline" },
+            ],
+            note: "outline writes bullets only — not the customer reply yet.",
+            ticket: {
+              outline: "1) Return window 45 days  2) Refund to card 5–7 days  3) Need receipt",
+            },
+          },
+          {
+            nodes: ["START", "intake", "retrieve", "outline", "writer"],
+            edges: [
+              { from: "START", to: "intake" },
+              { from: "intake", to: "retrieve" },
+              { from: "retrieve", to: "outline" },
+              { from: "outline", to: "writer" },
+            ],
+            note: "writer expands outline + context into a draft with Sources.",
+            ticket: {
+              draft: "Yes — refund to your card in 5–7 days after approval. Sources: refund_policy.txt",
+            },
+          },
+          {
+            nodes: ["START", "intake", "retrieve", "outline", "writer", "editor", "END"],
+            edges: [
+              { from: "START", to: "intake" },
+              { from: "intake", to: "retrieve" },
+              { from: "retrieve", to: "outline" },
+              { from: "outline", to: "writer" },
+              { from: "writer", to: "editor" },
+              { from: "editor", to: "END" },
+            ],
+            note: "editor polishes tone only. Vs 09: these stages cannot fan out — each needs the prior field.",
+            ticket: {
+              polished:
+                "Yes — you can return ORD-88421; approved refunds hit your card in 5–7 business days. Sources: refund_policy.txt",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  parallel_agents: {
+    kicker: "Day 5 · 09 · Parallel agents",
+    caption:
+      "Fan-out refund / shipping / contacts together; summarize is a join. Annotated add merges findings. Play the walk.",
+    direction: "TD",
+    layers: [
+      ["START"],
+      ["refund_worker", "shipping_worker", "contacts_worker"],
+      ["summarize"],
+      ["END"],
+    ],
+    edges: [
+      { from: "START", to: "refund_worker" },
+      { from: "START", to: "shipping_worker" },
+      { from: "START", to: "contacts_worker" },
+      { from: "refund_worker", to: "summarize" },
+      { from: "shipping_worker", to: "summarize" },
+      { from: "contacts_worker", to: "summarize" },
+      { from: "summarize", to: "END" },
+    ],
+    meanings: {
+      START: "three edges leave here",
+      refund_worker: "refund_policy RAG brief",
+      shipping_worker: "shipping_policy RAG brief",
+      contacts_worker: "contacts RAG brief",
+      summarize: "join · waits for all",
+      END: "customer answer",
+    },
+    idleNote: "All three leave START together. summarize waits. Press Play.",
+    cases: [
+      {
+        name: "multi-part · all three",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket asks refund timing + shipping ETA + who to email — three independent briefs.",
+            ticket: {
+              question:
+                "If I return ORD-88421, how long until the refund hits… shipping… who do I email?",
+            },
+          },
+          {
+            nodes: ["START", "refund_worker", "shipping_worker", "contacts_worker"],
+            edges: [
+              { from: "START", to: "refund_worker" },
+              { from: "START", to: "shipping_worker" },
+              { from: "START", to: "contacts_worker" },
+            ],
+            note: "Fan-out: all three run. Branches do not see each other's writes yet.",
+            ticket: {
+              findings: [
+                "[refund] …",
+                "[shipping] …",
+                "[contacts] …",
+              ],
+            },
+          },
+          {
+            nodes: ["START", "refund_worker", "shipping_worker", "contacts_worker"],
+            edges: [
+              { from: "START", to: "refund_worker" },
+              { from: "START", to: "shipping_worker" },
+              { from: "START", to: "contacts_worker" },
+            ],
+            note: "Suppose refund_worker finishes first — summarize does not start early. Join waits.",
+            ticket: {
+              findings: ["[refund] 5–7 business days to original payment…"],
+              citations: ["refund_policy.txt"],
+            },
+          },
+          {
+            nodes: [
+              "START",
+              "refund_worker",
+              "shipping_worker",
+              "contacts_worker",
+              "summarize",
+            ],
+            edges: [
+              { from: "START", to: "refund_worker" },
+              { from: "START", to: "shipping_worker" },
+              { from: "START", to: "contacts_worker" },
+              { from: "refund_worker", to: "summarize" },
+              { from: "shipping_worker", to: "summarize" },
+              { from: "contacts_worker", to: "summarize" },
+            ],
+            note: "All three finished → Annotated add concatenated findings → summarize merges one reply.",
+            ticket: {
+              findings: [
+                "[refund] 5–7 days…",
+                "[shipping] standard 3–5 days…",
+                "[contacts] help@acme.example…",
+              ],
+              citations: [
+                "contacts.txt",
+                "refund_policy.txt",
+                "shipping_policy.txt",
+              ],
+            },
+          },
+          {
+            nodes: [
+              "START",
+              "refund_worker",
+              "shipping_worker",
+              "contacts_worker",
+              "summarize",
+              "END",
+            ],
+            edges: [
+              { from: "START", to: "refund_worker" },
+              { from: "START", to: "shipping_worker" },
+              { from: "START", to: "contacts_worker" },
+              { from: "refund_worker", to: "summarize" },
+              { from: "shipping_worker", to: "summarize" },
+              { from: "contacts_worker", to: "summarize" },
+              { from: "summarize", to: "END" },
+            ],
+            note: "Vs 10: if shipping needed the refund brief first, use sequential instead.",
+            ticket: {
+              answer:
+                "Refund in 5–7 days; standard shipping 3–5 days; email help@acme.example. Sources: …",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  hierarchical: {
+    kicker: "Day 5 · 08 · Hierarchical agents",
+    caption:
+      "Executive picks owning team → support (policy RAG) or engineering (oncall runbook). Play each path.",
+    direction: "TD",
+    layers: [["START"], ["executive"], ["support", "engineering"], ["END"]],
+    edges: [
+      { from: "START", to: "executive" },
+      { from: "executive", to: "support", label: "support" },
+      { from: "executive", to: "engineering", label: "engineering" },
+      { from: "support", to: "END" },
+      { from: "engineering", to: "END" },
+    ],
+    meanings: {
+      START: "ticket in",
+      executive: "LLM picks owning team",
+      support: "faq_bot · Day 2 RAG",
+      engineering: "oncall_bot · runbook",
+      END: "team answer",
+    },
+    idleNote: "Pick support or engineering, then Play.",
+    cases: [
+      {
+        name: "support · refund",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Can I return ORD-88421 and get money back to my card?",
+            ticket: { question: "Can I return ORD-88421 and get money back to my card?" },
+          },
+          {
+            nodes: ["START", "executive"],
+            edges: [{ from: "START", to: "executive" }],
+            note: "Executive LLM writes team=support. Edge only reads that field.",
+            ticket: {
+              question: "Can I return ORD-88421 and get money back to my card?",
+              team: "support",
+              why: "refund / return policy FAQ",
+            },
+          },
+          {
+            nodes: ["START", "executive", "support"],
+            edges: [
+              { from: "START", to: "executive" },
+              { from: "executive", to: "support" },
+            ],
+            note: "support_lead folds faq_bot — retrieves Day 2 refund_policy chunks.",
+            ticket: {
+              team: "support",
+              worker: "faq_bot",
+              citations: ["refund_policy.txt"],
+            },
+          },
+          {
+            nodes: ["START", "executive", "support", "END"],
+            edges: [
+              { from: "START", to: "executive" },
+              { from: "executive", to: "support" },
+              { from: "support", to: "END" },
+            ],
+            note: "engineering never ran. Two hops: executive → support.",
+            ticket: {
+              team: "support",
+              worker: "faq_bot",
+              citations: ["refund_policy.txt"],
+              answer: "Yes — refund to original payment in 5–7 days. Sources: refund_policy.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "engineering · checkout 500",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Checkout API returns 500 for ORD-88421 — is payments down?",
+            ticket: {
+              question: "Checkout API returns 500 for ORD-88421 — is the payments service down?",
+            },
+          },
+          {
+            nodes: ["START", "executive"],
+            edges: [{ from: "START", to: "executive" }],
+            note: "team=engineering — not a policy FAQ path.",
+            ticket: {
+              team: "engineering",
+              why: "API / outage / status ask",
+            },
+          },
+          {
+            nodes: ["START", "executive", "engineering"],
+            edges: [
+              { from: "START", to: "executive" },
+              { from: "executive", to: "engineering" },
+            ],
+            note: "eng_lead folds oncall_bot — answers from oncall_runbook.md, not Day 2 policies.",
+            ticket: {
+              team: "engineering",
+              worker: "oncall_bot",
+              citations: ["oncall_runbook.md"],
+            },
+          },
+          {
+            nodes: ["START", "executive", "engineering", "END"],
+            edges: [
+              { from: "START", to: "executive" },
+              { from: "executive", to: "engineering" },
+              { from: "engineering", to: "END" },
+            ],
+            note: "support never ran. Vs 04: flat router would skip the team layer.",
+            ticket: {
+              team: "engineering",
+              worker: "oncall_bot",
+              citations: ["oncall_runbook.md"],
+              answer: "Retry after 30s; check status.acme.example. Sources: oncall_runbook.md",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  evaluator: {
+    kicker: "Day 5 · 07 · Evaluator agents",
+    caption:
+      "Offline suite: retrieve context → LLM rubric scores → report. No revise hop. Play pass vs fail.",
+    direction: "TD",
+    layers: [["START"], ["retrieve_context"], ["evaluate"], ["report"], ["END"]],
+    edges: [
+      { from: "START", to: "retrieve_context" },
+      { from: "retrieve_context", to: "evaluate" },
+      { from: "evaluate", to: "report" },
+      { from: "report", to: "END" },
+    ],
+    meanings: {
+      START: "eval case in",
+      retrieve_context: "Day 2 policy chunks",
+      evaluate: "0/1 rubric scores",
+      report: "log vs expect_pass",
+      END: "metrics only",
+    },
+    idleNote: "Pick pass or fail, then Play.",
+    cases: [
+      {
+        name: "pass · good_refund",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Case good_refund — grounded answer with Sources: refund_policy.txt",
+            ticket: {
+              label: "good_refund",
+              expect_pass: true,
+              answer: "… 5–7 business days… Sources: refund_policy.txt",
+            },
+          },
+          {
+            nodes: ["START", "retrieve_context"],
+            edges: [{ from: "START", to: "retrieve_context" }],
+            note: "retrieve_context loads refund_policy chunks for the ticket.",
+            ticket: { citations: ["refund_policy.txt"] },
+          },
+          {
+            nodes: ["START", "retrieve_context", "evaluate"],
+            edges: [
+              { from: "START", to: "retrieve_context" },
+              { from: "retrieve_context", to: "evaluate" },
+            ],
+            note: "All axes 1 → passed=true. Still no rewrite node on this graph.",
+            ticket: {
+              scores: { grounded: 1, no_invention: 1, has_sources: 1, helpful: 1 },
+              passed: true,
+            },
+          },
+          {
+            nodes: ["START", "retrieve_context", "evaluate", "report", "END"],
+            edges: [
+              { from: "START", to: "retrieve_context" },
+              { from: "retrieve_context", to: "evaluate" },
+              { from: "evaluate", to: "report" },
+              { from: "report", to: "END" },
+            ],
+            note: "report: expect_pass=true · actual=true · suite_match=true",
+            ticket: { expect_pass: true, passed: true },
+          },
+        ],
+      },
+      {
+        name: "fail · invents_portal",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Case invents_portal — answer cites https://portal.acme.example/refunds",
+            ticket: {
+              label: "invents_portal",
+              expect_pass: false,
+              answer: "… portal.acme.example/refunds … Sources: refund_policy.txt",
+            },
+          },
+          {
+            nodes: ["START", "retrieve_context", "evaluate"],
+            edges: [
+              { from: "START", to: "retrieve_context" },
+              { from: "retrieve_context", to: "evaluate" },
+            ],
+            note: "no_invention=0 (and often grounded=0) → passed=false.",
+            ticket: {
+              scores: { grounded: 0, no_invention: 0, has_sources: 1, helpful: 1 },
+              passed: false,
+              reason: "Invented refund portal URL not in policy",
+            },
+          },
+          {
+            nodes: ["START", "retrieve_context", "evaluate", "report", "END"],
+            edges: [
+              { from: "START", to: "retrieve_context" },
+              { from: "retrieve_context", to: "evaluate" },
+              { from: "evaluate", to: "report" },
+              { from: "report", to: "END" },
+            ],
+            note: "suite_match=true. Alert / fail the build — do not auto-revise here (that's 06).",
+            ticket: { expect_pass: false, passed: false },
+          },
+        ],
+      },
+    ],
+  },
+  critic: {
+    kicker: "Day 5 · 06 · Critic agents",
+    caption:
+      "RAG draft → LLM critic → revise once if needed → finalize. Play a revise path and an approve path.",
+    direction: "TD",
+    layers: [["START"], ["generate"], ["critic"], ["revise"], ["finalize"], ["END"]],
+    edges: [
+      { from: "START", to: "generate" },
+      { from: "generate", to: "critic" },
+      { from: "critic", to: "revise", label: "issues" },
+      { from: "revise", to: "critic" },
+      { from: "critic", to: "finalize", label: "approved / budget out" },
+      { from: "finalize", to: "END" },
+    ],
+    meanings: {
+      START: "ticket in",
+      generate: "RAG first draft",
+      critic: "structured approve / issues",
+      revise: "fix from context + critique",
+      finalize: "ship draft",
+      END: "customer-ready reply",
+    },
+    idleNote: "Pick a path, then Play to walk the critic loop.",
+    cases: [
+      {
+        name: "revise once",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Can I return ORD-88421 and get money back to my card?",
+            ticket: { question: "Can I return ORD-88421 and get money back to my card?" },
+          },
+          {
+            nodes: ["START", "generate"],
+            edges: [{ from: "START", to: "generate" }],
+            note: "generate retrieves refund_policy — draft may invent an Acme refund portal.",
+            ticket: {
+              citations: ["refund_policy.txt"],
+              draft: "… use the Acme refund portal at portal.acme.example …",
+            },
+          },
+          {
+            nodes: ["START", "generate", "critic"],
+            edges: [
+              { from: "START", to: "generate" },
+              { from: "generate", to: "critic" },
+            ],
+            note: "critic · approved=False · invents portal / missing Sources.",
+            ticket: {
+              approved: false,
+              critique: "Issues: invents portal URL; missing Sources line",
+            },
+          },
+          {
+            nodes: ["START", "generate", "critic", "revise"],
+            edges: [
+              { from: "START", to: "generate" },
+              { from: "generate", to: "critic" },
+              { from: "critic", to: "revise" },
+            ],
+            note: "revise#1 rewrites from context only; adds Sources: refund_policy.txt.",
+            ticket: {
+              revisions: 1,
+              draft: "Refund to original payment in 5–7 days after approval. Sources: refund_policy.txt",
+            },
+          },
+          {
+            nodes: ["START", "generate", "critic", "revise", "finalize", "END"],
+            edges: [
+              { from: "START", to: "generate" },
+              { from: "generate", to: "critic" },
+              { from: "critic", to: "revise" },
+              { from: "revise", to: "critic" },
+              { from: "critic", to: "finalize" },
+              { from: "finalize", to: "END" },
+            ],
+            note: "Second critic pass approves → finalize ships the draft.",
+            ticket: {
+              approved: true,
+              final: "Refund to original payment in 5–7 days after approval. Sources: refund_policy.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "approve clean",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Who do I email about ORD-88421?",
+            ticket: { question: "Who do I email about ORD-88421?" },
+          },
+          {
+            nodes: ["START", "generate", "critic"],
+            edges: [
+              { from: "START", to: "generate" },
+              { from: "generate", to: "critic" },
+            ],
+            note: "Draft already grounded + Sources — critic may approve immediately.",
+            ticket: {
+              citations: ["contacts.txt"],
+              draft: "Email help@acme.example. Sources: contacts.txt",
+              approved: true,
+            },
+          },
+          {
+            nodes: ["START", "generate", "critic", "finalize", "END"],
+            edges: [
+              { from: "START", to: "generate" },
+              { from: "generate", to: "critic" },
+              { from: "critic", to: "finalize" },
+              { from: "finalize", to: "END" },
+            ],
+            note: "No revise hop. revise node stays on the graph but idle.",
+            ticket: {
+              final: "Email help@acme.example. Sources: contacts.txt",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  specialists: {
+    kicker: "Day 5 · 05 · Specialist agents",
+    caption:
+      "Deep domain prompts + own corpus. Classifier picks one niche — including compliance with a legal boundary. Play each ticket.",
+    direction: "TD",
+    layers: [["START"], ["classify"], ["refund", "shipping", "compliance"], ["END"]],
+    edges: [
+      { from: "START", to: "classify" },
+      { from: "classify", to: "refund", label: "refund" },
+      { from: "classify", to: "shipping", label: "shipping" },
+      { from: "classify", to: "compliance", label: "compliance" },
+      { from: "refund", to: "END" },
+      { from: "shipping", to: "END" },
+      { from: "compliance", to: "END" },
+    ],
+    meanings: {
+      START: "ticket in",
+      classify: "LLM writes domain",
+      refund: "deep refund specialist",
+      shipping: "deep shipping specialist",
+      compliance: "policy + not-legal-advice",
+      END: "specialist answer",
+    },
+    idleNote: "Pick a ticket, then Play to walk the specialist graph.",
+    cases: [
+      {
+        name: "refund",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Can I return ORD-88421 and get money back to my card?",
+            ticket: { question: "Can I return ORD-88421 and get money back to my card?" },
+          },
+          {
+            nodes: ["START", "classify"],
+            edges: [{ from: "START", to: "classify" }],
+            note: "classify → domain=refund (operational how-to, not a legal fight).",
+            ticket: { domain: "refund", why: "return / money back how-to" },
+          },
+          {
+            nodes: ["START", "classify", "refund", "END"],
+            edges: [
+              { from: "START", to: "classify" },
+              { from: "classify", to: "refund" },
+              { from: "refund", to: "END" },
+            ],
+            note: "Refund specialist checklist: window, receipt, payment method, timeline.",
+            ticket: {
+              citations: ["refund_policy.txt"],
+              answer:
+                "Return within 45 days with receipt; refund to original payment in 5–7 days after approval. Sources: refund_policy.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "shipping",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: How long does standard shipping take for ORD-88421?",
+            ticket: { question: "How long does standard shipping take for ORD-88421?" },
+          },
+          {
+            nodes: ["START", "classify", "shipping", "END"],
+            edges: [
+              { from: "START", to: "classify" },
+              { from: "classify", to: "shipping" },
+              { from: "shipping", to: "END" },
+            ],
+            note: "Shipping specialist: standard 3–5 business days after shipped.",
+            ticket: {
+              domain: "shipping",
+              citations: ["shipping_policy.txt"],
+              answer: "Standard shipping arrives in 3–5 business days. Sources: shipping_policy.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "compliance",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Is it legal for Acme to refuse my ORD-88421 refund after 50 days?",
+            ticket: {
+              question: "Is it legal for Acme to refuse my ORD-88421 refund after 50 days?",
+            },
+          },
+          {
+            nodes: ["START", "classify"],
+            edges: [{ from: "START", to: "classify" }],
+            note: "domain=compliance — customer challenges legality / refusal.",
+            ticket: { domain: "compliance", why: "legal-rights / refuse dispute" },
+          },
+          {
+            nodes: ["START", "classify", "compliance"],
+            edges: [
+              { from: "START", to: "classify" },
+              { from: "classify", to: "compliance" },
+            ],
+            note: "Retrieves refund_policy + contacts. Prompt forces not-legal-advice line.",
+            ticket: {
+              citations: ["refund_policy.txt", "contacts.txt"],
+            },
+          },
+          {
+            nodes: ["START", "classify", "compliance", "END"],
+            edges: [
+              { from: "START", to: "classify" },
+              { from: "classify", to: "compliance" },
+              { from: "compliance", to: "END" },
+            ],
+            note: "Policy facts (45-day window) + email + “not legal advice.”",
+            ticket: {
+              citations: ["refund_policy.txt", "contacts.txt"],
+              answer:
+                "Policy allows refund requests within 45 days of delivery… Email help@acme.example. This is general policy information, not legal advice. Sources: refund_policy.txt, contacts.txt",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  router_agents: {
+    kicker: "Day 5 · 04 · Router agents",
+    caption:
+      "LLM picks ONE desk. That agent answers from its corpus — no synthesize merge. Play each ticket.",
+    direction: "TD",
+    layers: [["START"], ["router"], ["refund", "shipping", "contacts", "chitchat"], ["END"]],
+    edges: [
+      { from: "START", to: "router" },
+      { from: "router", to: "refund", label: "refund" },
+      { from: "router", to: "shipping", label: "shipping" },
+      { from: "router", to: "contacts", label: "contacts" },
+      { from: "router", to: "chitchat", label: "chitchat" },
+      { from: "refund", to: "END" },
+      { from: "shipping", to: "END" },
+      { from: "contacts", to: "END" },
+      { from: "chitchat", to: "END" },
+    ],
+    meanings: {
+      START: "ticket in",
+      router: "LLM writes intent",
+      refund: "refund_policy RAG",
+      shipping: "shipping_policy RAG",
+      contacts: "contacts RAG",
+      chitchat: "short reply, no retrieve",
+      END: "single-path answer",
+    },
+    idleNote: "Pick a ticket, then Play to walk the router graph.",
+    cases: [
+      {
+        name: "refund",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Can I return ORD-88421 and get money back to my card?",
+            ticket: { question: "Can I return ORD-88421 and get money back to my card?" },
+          },
+          {
+            nodes: ["START", "router"],
+            edges: [{ from: "START", to: "router" }],
+            note: "router → intent=refund. Thin edge only reads intent.",
+            ticket: { intent: "refund", why: "return / money back ask" },
+          },
+          {
+            nodes: ["START", "router", "refund"],
+            edges: [
+              { from: "START", to: "router" },
+              { from: "router", to: "refund" },
+            ],
+            note: "refund_agent retrieves refund_policy.txt. Other desks stay idle.",
+            ticket: {
+              intent: "refund",
+              citations: ["refund_policy.txt"],
+              answer: "Refund to your card in 5–7 days after approval. Sources: refund_policy.txt",
+            },
+          },
+          {
+            nodes: ["START", "router", "refund", "END"],
+            edges: [
+              { from: "START", to: "router" },
+              { from: "router", to: "refund" },
+              { from: "refund", to: "END" },
+            ],
+            note: "Done. No synthesize node — that is lesson 01.",
+            ticket: {
+              answer: "Refund to your card in 5–7 days after approval. Sources: refund_policy.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "shipping",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: How long does standard shipping take for ORD-88421?",
+            ticket: { question: "How long does standard shipping take for ORD-88421?" },
+          },
+          {
+            nodes: ["START", "router"],
+            edges: [{ from: "START", to: "router" }],
+            note: "intent=shipping",
+            ticket: { intent: "shipping", why: "delivery ETA ask" },
+          },
+          {
+            nodes: ["START", "router", "shipping", "END"],
+            edges: [
+              { from: "START", to: "router" },
+              { from: "router", to: "shipping" },
+              { from: "shipping", to: "END" },
+            ],
+            note: "shipping_agent: standard 3–5 business days after shipped.",
+            ticket: {
+              citations: ["shipping_policy.txt"],
+              answer: "Standard shipping arrives in 3–5 business days. Sources: shipping_policy.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "contacts",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Who do I email about ORD-88421?",
+            ticket: { question: "Who do I email about ORD-88421?" },
+          },
+          {
+            nodes: ["START", "router", "contacts", "END"],
+            edges: [
+              { from: "START", to: "router" },
+              { from: "router", to: "contacts" },
+              { from: "contacts", to: "END" },
+            ],
+            note: "contacts_agent → help@acme.example. Refund desk did not run.",
+            ticket: {
+              intent: "contacts",
+              citations: ["contacts.txt"],
+              answer: "Email help@acme.example. Sources: contacts.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "chitchat",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: thanks, that helps",
+            ticket: { question: "thanks, that helps" },
+          },
+          {
+            nodes: ["START", "router"],
+            edges: [{ from: "START", to: "router" }],
+            note: "intent=chitchat — no policy ask.",
+            ticket: { intent: "chitchat", why: "thanks only" },
+          },
+          {
+            nodes: ["START", "router", "chitchat", "END"],
+            edges: [
+              { from: "START", to: "router" },
+              { from: "router", to: "chitchat" },
+              { from: "chitchat", to: "END" },
+            ],
+            note: "Short reply. No RAG — like Day 3 skip path.",
+            ticket: {
+              answer: "You're welcome — glad that helped.",
+              citations: [],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  planner_executor: {
+    kicker: "Day 5 · 03 · Planner / executor",
+    caption:
+      "Plan operations first (lookups → draft_reply), then execute. Replan once if a lookup fails. Play each ticket.",
+    direction: "TD",
+    layers: [["START"], ["planner"], ["executor"], ["replan"], ["END"]],
+    edges: [
+      { from: "START", to: "planner" },
+      { from: "planner", to: "executor" },
+      { from: "executor", to: "executor", label: "next step" },
+      { from: "executor", to: "replan", label: "lookup failed" },
+      { from: "replan", to: "executor" },
+      { from: "executor", to: "END", label: "plan done" },
+    ],
+    meanings: {
+      START: "ticket in",
+      planner: "LLM → ordered steps",
+      executor: "run lookup_* or draft_reply",
+      replan: "bounded corrective plan",
+      END: "customer answer",
+    },
+    idleNote: "Pick a ticket, then Play to walk planner → executor.",
+    cases: [
+      {
+        name: "refund plan",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Can I return ORD-88421 and get money back to my card?",
+            ticket: { question: "Can I return ORD-88421 and get money back to my card?" },
+          },
+          {
+            nodes: ["START", "planner"],
+            edges: [{ from: "START", to: "planner" }],
+            note: "planner → [lookup_refund, draft_reply]",
+            ticket: { plan: ["lookup_refund", "draft_reply"] },
+          },
+          {
+            nodes: ["START", "planner", "executor"],
+            edges: [
+              { from: "START", to: "planner" },
+              { from: "planner", to: "executor" },
+            ],
+            note: "executor[0]=lookup_refund · notes from refund_policy.txt",
+            ticket: {
+              step_index: 1,
+              citations: ["refund_policy.txt"],
+              notes: ["[lookup_refund] Refund within 45 days… 5–7 days after approval…"],
+            },
+          },
+          {
+            nodes: ["START", "planner", "executor", "END"],
+            edges: [
+              { from: "START", to: "planner" },
+              { from: "planner", to: "executor" },
+              { from: "executor", to: "END" },
+            ],
+            note: "executor[1]=draft_reply → customer answer + Sources. No replan.",
+            ticket: {
+              answer: "Yes — refund to your card in 5–7 days after approval. Sources: refund_policy.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "shipping plan",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: How long does standard shipping take for ORD-88421?",
+            ticket: { question: "How long does standard shipping take for ORD-88421?" },
+          },
+          {
+            nodes: ["START", "planner"],
+            edges: [{ from: "START", to: "planner" }],
+            note: "planner → [lookup_shipping, draft_reply]",
+            ticket: { plan: ["lookup_shipping", "draft_reply"] },
+          },
+          {
+            nodes: ["START", "planner", "executor", "END"],
+            edges: [
+              { from: "START", to: "planner" },
+              { from: "planner", to: "executor" },
+              { from: "executor", to: "END" },
+            ],
+            note: "Shipping notes → draft: standard 3–5 business days after shipped.",
+            ticket: {
+              citations: ["shipping_policy.txt"],
+              answer: "Standard shipping arrives in 3–5 business days. Sources: shipping_policy.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "multi-hop plan",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: refund timing + who do I email?",
+            ticket: {
+              question:
+                "If I return ORD-88421, how long until the refund hits my card, and who do I email?",
+            },
+          },
+          {
+            nodes: ["START", "planner"],
+            edges: [{ from: "START", to: "planner" }],
+            note: "planner → [lookup_refund, lookup_contacts, draft_reply]",
+            ticket: {
+              plan: ["lookup_refund", "lookup_contacts", "draft_reply"],
+            },
+          },
+          {
+            nodes: ["START", "planner", "executor"],
+            edges: [
+              { from: "START", to: "planner" },
+              { from: "planner", to: "executor" },
+            ],
+            note: "Step 0: lookup_refund · citations=[refund_policy.txt]",
+            ticket: {
+              step_index: 1,
+              citations: ["refund_policy.txt"],
+              notes: ["[lookup_refund] 5–7 business days after approval…"],
+            },
+          },
+          {
+            nodes: ["START", "planner", "executor"],
+            edges: [
+              { from: "START", to: "planner" },
+              { from: "planner", to: "executor" },
+              { from: "executor", to: "executor" },
+            ],
+            note: "Step 1: lookup_contacts · citations accumulate.",
+            ticket: {
+              step_index: 2,
+              citations: ["refund_policy.txt", "contacts.txt"],
+              notes: ["[lookup_refund] …", "[lookup_contacts] Email help@acme.example…"],
+            },
+          },
+          {
+            nodes: ["START", "planner", "executor", "END"],
+            edges: [
+              { from: "START", to: "planner" },
+              { from: "planner", to: "executor" },
+              { from: "executor", to: "END" },
+            ],
+            note: "draft_reply merges notes into one reply. Replan node stays idle on success.",
+            ticket: {
+              answer:
+                "Refund in 5–7 days after approval. Email help@acme.example. Sources: refund_policy.txt, contacts.txt",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  workers: {
+    kicker: "Day 5 · 02 · Worker agents",
+    caption:
+      "LLM plans an ordered job list. Each worker may only read its Acme corpus. Play each ticket path.",
+    direction: "TD",
+    layers: [["START"], ["plan_jobs"], ["execute_job"], ["gather"], ["END"]],
+    edges: [
+      { from: "START", to: "plan_jobs" },
+      { from: "plan_jobs", to: "execute_job" },
+      { from: "execute_job", to: "execute_job", label: "more jobs" },
+      { from: "execute_job", to: "gather", label: "done" },
+      { from: "gather", to: "END" },
+    ],
+    meanings: {
+      START: "ticket in",
+      plan_jobs: "LLM → ordered jobs list",
+      execute_job: "one narrow worker (own corpus)",
+      gather: "stack briefs + citations",
+      END: "briefs ready (synthesize in 01)",
+    },
+    idleNote: "Pick a ticket, then Play to walk the worker loop.",
+    cases: [
+      {
+        name: "refund only",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Can I return ORD-88421 and get money back to my card?",
+            ticket: { question: "Can I return ORD-88421 and get money back to my card?" },
+          },
+          {
+            nodes: ["START", "plan_jobs"],
+            edges: [{ from: "START", to: "plan_jobs" }],
+            note: "plan_jobs → jobs=[refund]. Smallest list that covers the ask.",
+            ticket: { jobs: ["refund"], why: "return / money back" },
+          },
+          {
+            nodes: ["START", "plan_jobs", "execute_job"],
+            edges: [
+              { from: "START", to: "plan_jobs" },
+              { from: "plan_jobs", to: "execute_job" },
+            ],
+            note: "refund worker reads only refund_policy.txt and writes a brief.",
+            ticket: {
+              jobs: ["refund"],
+              job_index: 1,
+              citations: ["refund_policy.txt"],
+              results: ["[refund] Refund within 45 days… original payment 5–7 days…"],
+            },
+          },
+          {
+            nodes: ["START", "plan_jobs", "execute_job", "gather", "END"],
+            edges: [
+              { from: "START", to: "plan_jobs" },
+              { from: "plan_jobs", to: "execute_job" },
+              { from: "execute_job", to: "gather" },
+              { from: "gather", to: "END" },
+            ],
+            note: "One brief gathered. No shipping or contacts worker ran.",
+            ticket: {
+              citations: ["refund_policy.txt"],
+              results: ["[refund] …"],
+            },
+          },
+        ],
+      },
+      {
+        name: "shipping only",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: How long does standard shipping take for ORD-88421?",
+            ticket: { question: "How long does standard shipping take for ORD-88421?" },
+          },
+          {
+            nodes: ["START", "plan_jobs"],
+            edges: [{ from: "START", to: "plan_jobs" }],
+            note: "jobs=[shipping] — ETA lives in shipping_policy.txt only.",
+            ticket: { jobs: ["shipping"], why: "delivery ETA ask" },
+          },
+          {
+            nodes: ["START", "plan_jobs", "execute_job", "gather", "END"],
+            edges: [
+              { from: "START", to: "plan_jobs" },
+              { from: "plan_jobs", to: "execute_job" },
+              { from: "execute_job", to: "gather" },
+              { from: "gather", to: "END" },
+            ],
+            note: "shipping worker: standard 3–5 business days after shipped.",
+            ticket: {
+              citations: ["shipping_policy.txt"],
+              results: ["[shipping] Standard shipping arrives in 3–5 business days…"],
+            },
+          },
+        ],
+      },
+      {
+        name: "refund + contacts",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Refund window for ORD-88421, and who do I email?",
+            ticket: { question: "Refund window for ORD-88421, and who do I email?" },
+          },
+          {
+            nodes: ["START", "plan_jobs"],
+            edges: [{ from: "START", to: "plan_jobs" }],
+            note: "jobs=[refund, contacts] — two narrow workers, ordered.",
+            ticket: { jobs: ["refund", "contacts"], why: "policy + contact channel" },
+          },
+          {
+            nodes: ["START", "plan_jobs", "execute_job"],
+            edges: [
+              { from: "START", to: "plan_jobs" },
+              { from: "plan_jobs", to: "execute_job" },
+            ],
+            note: "execute_job[0]=refund · sources=[refund_policy.txt]",
+            ticket: {
+              jobs: ["refund", "contacts"],
+              job_index: 1,
+              citations: ["refund_policy.txt"],
+              results: ["[refund] Customers may request a refund within 45 days…"],
+            },
+          },
+          {
+            nodes: ["START", "plan_jobs", "execute_job"],
+            edges: [
+              { from: "START", to: "plan_jobs" },
+              { from: "plan_jobs", to: "execute_job" },
+              { from: "execute_job", to: "execute_job" },
+            ],
+            note: "Loop: execute_job[1]=contacts · sources=[contacts.txt]. Citations accumulate.",
+            ticket: {
+              jobs: ["refund", "contacts"],
+              job_index: 2,
+              citations: ["refund_policy.txt", "contacts.txt"],
+              results: [
+                "[refund] …",
+                "[contacts] Email help@acme.example for ORD-* tickets.",
+              ],
+            },
+          },
+          {
+            nodes: ["START", "plan_jobs", "execute_job", "gather", "END"],
+            edges: [
+              { from: "START", to: "plan_jobs" },
+              { from: "plan_jobs", to: "execute_job" },
+              { from: "execute_job", to: "gather" },
+              { from: "gather", to: "END" },
+            ],
+            note: "gather stacks 2 briefs. Customer-facing synthesize is lesson 01.",
+            ticket: {
+              citations: ["refund_policy.txt", "contacts.txt"],
+              results: ["[refund] …", "[contacts] …"],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  supervisor: {
+    kicker: "Day 5 · 01 · Supervisor agents",
+    caption:
+      "Lead assigns policy / contacts workers (Day 2 Acme corpus), then synthesizes one grounded reply. Play each ticket path.",
+    direction: "TD",
+    layers: [["START"], ["supervise"], ["policy_worker", "contacts_worker"], ["synthesize"], ["END"]],
+    edges: [
+      { from: "START", to: "supervise" },
+      { from: "supervise", to: "policy_worker", label: "policy | both" },
+      { from: "supervise", to: "contacts_worker", label: "contacts" },
+      { from: "policy_worker", to: "contacts_worker", label: "both" },
+      { from: "policy_worker", to: "synthesize", label: "policy only" },
+      { from: "contacts_worker", to: "synthesize" },
+      { from: "synthesize", to: "END" },
+    ],
+    meanings: {
+      START: "ticket in",
+      supervise: "LLM assigns workers (writes assignment)",
+      policy_worker: "refund / shipping RAG brief",
+      contacts_worker: "contacts RAG brief",
+      synthesize: "LLM merges briefs + Sources",
+      END: "customer answer",
+    },
+    idleNote: "Pick a ticket, then Play to walk the supervisor graph.",
+    cases: [
+      {
+        name: "policy · refund",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Can I return ORD-88421 and get money back to my card?",
+            ticket: { question: "Can I return ORD-88421 and get money back to my card?" },
+          },
+          {
+            nodes: ["START", "supervise"],
+            edges: [{ from: "START", to: "supervise" }],
+            note: "Supervisor LLM writes assignment=policy. Edge only reads that field.",
+            ticket: {
+              question: "Can I return ORD-88421 and get money back to my card?",
+              assignment: "policy",
+              why: "refund / return ask",
+            },
+          },
+          {
+            nodes: ["START", "supervise", "policy_worker"],
+            edges: [
+              { from: "START", to: "supervise" },
+              { from: "supervise", to: "policy_worker" },
+            ],
+            note: "policy_worker retrieves refund_policy.txt and writes an internal brief.",
+            ticket: {
+              assignment: "policy",
+              citations: ["refund_policy.txt"],
+              policy_brief: "Refund within 45 days… original payment 5–7 days…",
+            },
+          },
+          {
+            nodes: ["START", "supervise", "policy_worker", "synthesize", "END"],
+            edges: [
+              { from: "START", to: "supervise" },
+              { from: "supervise", to: "policy_worker" },
+              { from: "policy_worker", to: "synthesize" },
+              { from: "synthesize", to: "END" },
+            ],
+            note: "Synthesize merges the brief into one customer reply. contacts_worker never ran.",
+            ticket: {
+              assignment: "policy",
+              citations: ["refund_policy.txt"],
+              answer: "Yes — refund to your card in 5–7 days after approval. Sources: refund_policy.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "contacts · email",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: Who do I email about ORD-88421?",
+            ticket: { question: "Who do I email about ORD-88421?" },
+          },
+          {
+            nodes: ["START", "supervise"],
+            edges: [{ from: "START", to: "supervise" }],
+            note: "assignment=contacts — only the help-desk corpus is needed.",
+            ticket: { assignment: "contacts", why: "asks who to email" },
+          },
+          {
+            nodes: ["START", "supervise", "contacts_worker"],
+            edges: [
+              { from: "START", to: "supervise" },
+              { from: "supervise", to: "contacts_worker" },
+            ],
+            note: "contacts_worker retrieves contacts.txt (help@acme.example).",
+            ticket: {
+              assignment: "contacts",
+              citations: ["contacts.txt"],
+              contacts_brief: "Email help@acme.example for ORD-* tickets.",
+            },
+          },
+          {
+            nodes: ["START", "supervise", "contacts_worker", "synthesize", "END"],
+            edges: [
+              { from: "START", to: "supervise" },
+              { from: "supervise", to: "contacts_worker" },
+              { from: "contacts_worker", to: "synthesize" },
+              { from: "synthesize", to: "END" },
+            ],
+            note: "Customer gets the email. No policy retrieve on this path.",
+            ticket: {
+              answer: "Email help@acme.example for ORD-88421. Sources: contacts.txt",
+            },
+          },
+        ],
+      },
+      {
+        name: "both · refund + email",
+        walk: [
+          {
+            nodes: ["START"],
+            edges: [],
+            note: "Ticket: If I return ORD-88421, how long until the refund hits, and who do I email?",
+            ticket: {
+              question:
+                "If I return ORD-88421, how long until the refund hits my card, and who do I email?",
+            },
+          },
+          {
+            nodes: ["START", "supervise"],
+            edges: [{ from: "START", to: "supervise" }],
+            note: "assignment=both — needs policy facts AND a contact channel.",
+            ticket: { assignment: "both", why: "refund timing + who to email" },
+          },
+          {
+            nodes: ["START", "supervise", "policy_worker"],
+            edges: [
+              { from: "START", to: "supervise" },
+              { from: "supervise", to: "policy_worker" },
+            ],
+            note: "First worker: policy brief (5–7 business days after approval).",
+            ticket: {
+              assignment: "both",
+              citations: ["refund_policy.txt"],
+              policy_brief: "Refund hits original payment in 5–7 days after approval.",
+            },
+          },
+          {
+            nodes: ["START", "supervise", "policy_worker", "contacts_worker"],
+            edges: [
+              { from: "START", to: "supervise" },
+              { from: "supervise", to: "policy_worker" },
+              { from: "policy_worker", to: "contacts_worker" },
+            ],
+            note: "Second worker: contacts brief. Citations accumulate.",
+            ticket: {
+              assignment: "both",
+              citations: ["refund_policy.txt", "contacts.txt"],
+              contacts_brief: "Email help@acme.example.",
+            },
+          },
+          {
+            nodes: ["START", "supervise", "policy_worker", "contacts_worker", "synthesize", "END"],
+            edges: [
+              { from: "START", to: "supervise" },
+              { from: "supervise", to: "policy_worker" },
+              { from: "policy_worker", to: "contacts_worker" },
+              { from: "contacts_worker", to: "synthesize" },
+              { from: "synthesize", to: "END" },
+            ],
+            note: "Synthesize merges both briefs into one reply with Sources.",
+            ticket: {
+              citations: ["refund_policy.txt", "contacts.txt"],
+              answer:
+                "Refund in 5–7 days after approval. Email help@acme.example. Sources: refund_policy.txt, contacts.txt",
+            },
+          },
+        ],
+      },
+    ],
+  },
   debug: {
     kicker: "01 · Debugging agents",
     caption: "Four failures. Four places to look. The graph is a glass box.",
